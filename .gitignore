@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+
+# variables d'environnement
+.env
+.env.local
+.env*.local
+
+# secrets de service (ne jamais committer)
+*-service-account*.json
+serviceAccountKey.json
+
+# firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.log
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.secrets/

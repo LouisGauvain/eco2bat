@@ -1,0 +1,91 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Le site est statique : il n'y a pas de serveur pour filtrer les accès.
+// Ces règles SONT la sécurité de l'application — c'est le seul endroit qui
+// décide qui peut lire et écrire quoi. Toute modification doit être faite en
+// ayant cela en tête.
+//
+// Modèle :
+//  - n'importe quel visiteur peut DÉPOSER une demande de contact, mais aucun
+//    visiteur ne peut en lire, en modifier ni en supprimer une ;
+//  - seul un utilisateur authentifié (le gérant) accède aux demandes ;
+//  - les réglages du site sont lisibles par tous (le bandeau s'affiche sur le
+//    site public) et modifiables uniquement par un utilisateur authentifié.
+//
+// Aucune inscription n'est ouverte : les comptes sont créés à la main dans la
+// console Firebase. « Authentifié » vaut donc « c'est le gérant ».
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /leads/{leadId} {
+      allow read, update, delete: if isSignedIn();
+
+      // Dépôt public d'une demande. La validation ci-dessous n'empêche pas un
+      // robot déterminé d'écrire, mais elle interdit d'utiliser la collection
+      // comme espace de stockage libre : champs imposés, types imposés,
+      // longueurs bornées, et statut initial non falsifiable.
+      allow create: if isValidLead();
+
+      function isValidLead() {
+        let d = request.resource.data;
+        return d.keys().hasOnly([
+                 'name', 'email', 'phone', 'prestation', 'propertyType',
+                 'city', 'deadline', 'message', 'status', 'createdAt', 'consentAt'
+               ])
+               && d.keys().hasAll([
+                 'name', 'email', 'prestation', 'propertyType',
+                 'city', 'deadline', 'status', 'createdAt', 'consentAt'
+               ])
+               && d.name is string && d.name.size() >= 2 && d.name.size() <= 120
+               && d.email is string && d.email.size() <= 180
+               && d.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+               && (!('phone' in d) || d.phone == null
+                   || (d.phone is string && d.phone.size() <= 30))
+               && (!('message' in d) || d.message == null
+                   || (d.message is string && d.message.size() <= 4000))
+               && d.city is string && d.city.size() >= 2 && d.city.size() <= 120
+               && d.prestation in ['audit-energetique', 'audit-vente', 'dpe',
+                                   'infiltrometrie', 'coproprietes', 'formation', 'autre']
+               && d.propertyType in ['maison', 'appartement', 'immeuble',
+                                     'tertiaire', 'neuf']
+               && d.deadline in ['urgent', 'mois', 'trimestre', 'renseignement']
+               // Une demande entre toujours en « nouveau » : le statut est un
+               // outil de suivi interne, pas une donnée fournie par le visiteur.
+               && d.status == 'nouveau'
+               // Horodatages posés par le serveur Firestore, non falsifiables.
+               && d.createdAt == request.time
+               && d.consentAt == request.time;
+      }
+    }
+
+    match /settings/{docId} {
+      // Le bandeau d'information et les coordonnées de l'entreprise sont
+      // affichés sur le site public.
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Surcharge du contenu des pages, éditée depuis le back-office. Lue par
+    // tous les visiteurs (elle remplace le texte affiché), écrite par le seul
+    // gérant. La forme du document est validée côté client par un schéma : un
+    // document invalide n'est pas appliqué, la page du dépôt reprend la main.
+    match /pages/{pageId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && request.resource.data.size() <= 20;
+      // Suppression = retour au texte du dépôt.
+      allow delete: if isSignedIn();
+    }
+
+    // Tout le reste est fermé par défaut.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

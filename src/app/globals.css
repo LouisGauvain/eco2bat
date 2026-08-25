@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+/*
+ * Palette reprise du logo : bleu d'encre pour la structure et le texte,
+ * vert pour l'accent. Deux couleurs seulement — un bureau d'études se présente
+ * mieux avec de la rigueur typographique qu'avec des dégradés.
+ */
+@theme {
+  --color-ink-50: #f3f6fa;
+  --color-ink-100: #e3eaf3;
+  --color-ink-200: #c6d4e5;
+  --color-ink-300: #93aacb;
+  --color-ink-400: #5b7ba9;
+  --color-ink-500: #3a5b8a;
+  --color-ink-600: #24406b;
+  --color-ink-700: #1b3a6b;
+  --color-ink-800: #152c50;
+  --color-ink-900: #101f38;
+
+  --color-leaf-50: #f0f9f0;
+  --color-leaf-100: #ddf0dd;
+  --color-leaf-200: #bce2bc;
+  --color-leaf-300: #8ccd8c;
+  --color-leaf-400: #5cb45c;
+  --color-leaf-500: #3d9b3d;
+  --color-leaf-600: #2d7d2d;
+  --color-leaf-700: #256425;
+  --color-leaf-800: #1f501f;
+
+  --color-sand-50: #faf8f4;
+  --color-sand-100: #f2ede3;
+
+  /* Polices chargées par next/font dans le layout racine : elles exposent
+     --font-source-sans et --font-source-serif sur <html>. */
+  --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
+
+  /* Mesure de lecture confortable pour des pages majoritairement textuelles. */
+  --container-prose: 68ch;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-white);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Cible de focus visible partout : exigence RGAA, et l'ancien site n'en avait aucune. */
+:focus-visible {
+  outline: 3px solid var(--color-leaf-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

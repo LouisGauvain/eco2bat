@@ -1,0 +1,71 @@
+{
+  "hosting": {
+    "public": "out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "trailingSlash": true,
+    "cleanUrls": false,
+    "redirects": [
+      {
+        "source": "/infiltrometrie/neuf-rt-2012",
+        "destination": "/infiltrometrie/construction-neuve/",
+        "type": 301
+      },
+      {
+        "source": "/infiltrometrie/renovation",
+        "destination": "/infiltrometrie/",
+        "type": 301
+      },
+      {
+        "source": "/particuliers",
+        "destination": "/diagnostic-logement/",
+        "type": 301
+      },
+      {
+        "source": "/moyens-2",
+        "destination": "/a-propos/",
+        "type": 301
+      },
+      { "source": "/feed", "destination": "/", "type": 301 },
+      { "source": "/:path*/feed", "destination": "/:path*/", "type": 301 },
+      { "source": "/category/**", "destination": "/", "type": 301 },
+      { "source": "/tag/**", "destination": "/", "type": 301 },
+      { "source": "/author/**", "destination": "/a-propos/", "type": 301 },
+      {
+        "source": "/wp-content/**",
+        "destination": "/",
+        "type": 301
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=63072000; includeSubDomains; preload"
+          }
+        ]
+      },
+      {
+        "source": "/_next/static/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5055 },
+    "ui": { "enabled": true, "port": 4000 },
+    "singleProjectMode": true
+  }
+}
