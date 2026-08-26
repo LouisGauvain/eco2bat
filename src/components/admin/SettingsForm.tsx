@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { Toast } from './Toast';
 import { defaultSettings, getSettings, saveSettings, settingsSchema, type Settings } from '@/lib/settings';
 
 type Status = 'loading' | 'idle' | 'saving' | 'success' | 'error';
@@ -63,16 +64,10 @@ export function SettingsForm() {
       onSubmit={onSubmit}
       className="max-w-2xl space-y-6 rounded-lg border border-ink-200 bg-white p-6"
     >
-      {(status === 'success' || status === 'error') && (
-        <p
-          role="status"
-          className={`rounded-md p-3 text-sm ${
-            status === 'success' ? 'bg-leaf-50 text-leaf-800' : 'bg-red-50 text-red-900'
-          }`}
-        >
-          {message}
-        </p>
-      )}
+      <Toast
+        message={status === 'success' || status === 'error' ? message : ''}
+        tone={status === 'error' ? 'error' : 'success'}
+      />
 
       <fieldset className="space-y-3">
         <legend className="font-semibold text-ink-900">Bandeau d’information</legend>

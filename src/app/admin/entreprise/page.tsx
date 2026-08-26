@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function CompanyPage() {
   return (
     <AdminGate title="Informations de l’entreprise">
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-600">
+      <p className="text-sm leading-relaxed text-ink-600">
         Nom, adresse, téléphone et e-mail sont affichés dans l’en-tête, le pied
         de page et la page Contact. Les moteurs de recherche comparent ces
         informations à celles de votre fiche Google : gardez-les identiques

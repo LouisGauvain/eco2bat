@@ -53,16 +53,8 @@ export function usePageContent(page: Page): Page {
     };
   }, [page, version]);
 
-  // Le <title> et la meta-description sont figés dans le HTML statique : on les
-  // aligne sur la surcharge pour que l'onglet et les partages correspondent à
-  // ce que le visiteur lit. L'index, lui, attend le prochain déploiement.
-  useEffect(() => {
-    document.title = merged.seo.title;
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute('content', merged.seo.description);
-  }, [merged]);
-
+  // Le <title> et la meta-description restent ceux du HTML statique : le
+  // référencement se gère dans le dépôt, pas depuis le back-office.
   return merged;
 }
 

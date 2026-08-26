@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { PageEditor } from './PageEditor';
 import { pages } from '@/content';
 import { pathOf, type Page } from '@/content/types';
-import { getOverriddenPageIds, pageDocId } from '@/lib/content-store';
 
 /**
  * Gestion du contenu : la liste des pages du site à gauche, l'éditeur de la
@@ -19,11 +18,6 @@ import { getOverriddenPageIds, pageDocId } from '@/lib/content-store';
  */
 export function ContentManager() {
   const [selected, setSelected] = useState<Page>(pages[0] as Page);
-  const [overridden, setOverridden] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    getOverriddenPageIds().then(setOverridden);
-  }, []);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
@@ -44,23 +38,11 @@ export function ContentManager() {
                   }`}
                 >
                   <span className="min-w-0 flex-1 truncate">{page.navLabel}</span>
-                  {overridden.has(pageDocId(page.slug)) && (
-                    <span
-                      title="Modifiée en ligne"
-                      className={`h-2 w-2 shrink-0 rounded-full ${
-                        current ? 'bg-leaf-300' : 'bg-leaf-500'
-                      }`}
-                    />
-                  )}
                 </button>
               </li>
             );
           })}
         </ul>
-        <p className="mt-4 flex items-center gap-2 px-3 text-xs text-ink-500">
-          <span className="h-2 w-2 rounded-full bg-leaf-500" />
-          Modifiée en ligne
-        </p>
       </nav>
 
       <div className="min-w-0">
@@ -75,11 +57,7 @@ export function ContentManager() {
           </Link>
         </div>
 
-        <PageEditor
-          key={pathOf(selected)}
-          page={selected}
-          onSaved={() => getOverriddenPageIds().then(setOverridden)}
-        />
+        <PageEditor key={pathOf(selected)} page={selected} />
       </div>
     </div>
   );

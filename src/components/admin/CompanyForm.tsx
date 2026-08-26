@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { AddButton, Field, ItemControls, TextField, moved, removed, replaced } from './fields';
+import { Toast } from './Toast';
 import { companySchema, type Company } from '@/content/schema';
 import { defaultCompany, getCompany, saveCompany } from '@/lib/content-store';
 
@@ -64,17 +65,8 @@ export function CompanyForm() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
-      {message && (
-        <p
-          role="status"
-          className={`rounded-md p-3 text-sm ${
-            status === 'error' ? 'bg-red-50 text-red-900' : 'bg-leaf-50 text-leaf-800'
-          }`}
-        >
-          {message}
-        </p>
-      )}
+    <div className="space-y-8">
+      <Toast message={message} tone={status === 'error' ? 'error' : 'success'} />
 
       <Card title="Identité">
         <Field

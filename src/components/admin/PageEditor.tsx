@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 
 import { BlockList } from './BlockEditor';
 import { Field, TextField } from './fields';
+import { Toast } from './Toast';
 import { pageContentSchema, type PageContent } from '@/content/schema';
 import type { Block, Page } from '@/content/types';
-import { pathOf } from '@/content/types';
 import {
   getPageContent,
   pageContentOf,
@@ -27,11 +27,9 @@ type Status = 'loading' | 'idle' | 'saving' | 'error';
 
 export function PageEditor({
   page,
-  onSaved,
   compact = false,
 }: {
   page: Page;
-  onSaved?: () => void;
   /** Mise en page resserrée pour le panneau d'édition en direct. */
   compact?: boolean;
 }) {
@@ -62,7 +60,14 @@ export function PageEditor({
   }
 
   async function onSave() {
-    const parsed = pageContentSchema.safeParse(normalize(draft));
+    // Le référencement et le libellé de menu ne s'éditent pas ici : ils sont
+    // écrits dans le HTML au moment du build — le menu figure sur toutes les
+    // pages, pas seulement celle qu'on modifie. On réécrit systématiquement les
+    // valeurs du dépôt, pour qu'une ancienne surcharge ne traîne pas en base.
+    const origin = pageContentOf(page);
+    const parsed = pageContentSchema.safeParse(
+      normalize({ ...draft, navLabel: origin.navLabel, seo: origin.seo }),
+    );
 
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -79,7 +84,6 @@ export function PageEditor({
       setOverridden(true);
       setStatus('idle');
       setMessage('Page enregistrée — visible immédiatement sur le site.');
-      onSaved?.();
     } catch (error) {
       console.error('[contenu] enregistrement impossible', error);
       setStatus('error');
@@ -99,7 +103,6 @@ export function PageEditor({
       setOverridden(false);
       setStatus('idle');
       setMessage('Texte d’origine rétabli.');
-      onSaved?.();
     } catch (error) {
       console.error('[contenu] réinitialisation impossible', error);
       setStatus('error');
@@ -113,23 +116,13 @@ export function PageEditor({
 
   return (
     <div className={compact ? 'space-y-6' : 'max-w-3xl space-y-8'}>
-      {message && (
-        <p
-          role="status"
-          className={`rounded-md p-3 text-sm ${
-            status === 'error' ? 'bg-red-50 text-red-900' : 'bg-leaf-50 text-leaf-800'
-          }`}
-        >
-          {message}
-        </p>
-      )}
+      <Toast message={message} tone={status === 'error' ? 'error' : 'success'} />
 
       <p className="rounded-md bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
         {overridden
-          ? 'Cette page est modifiée en ligne : le texte ci-dessous remplace celui du site déployé.'
-          : 'Cette page affiche son texte d’origine.'}{' '}
-        Une modification est visible tout de suite par les visiteurs, mais
-        n’entre dans l’index de Google qu’au prochain déploiement du site.
+          ? 'Texte modifié en ligne : il remplace celui du site déployé.'
+          : 'Texte d’origine du site.'}{' '}
+        Vos modifications sont visibles par les visiteurs dès l’enregistrement.
       </p>
 
       <Section title="Identité de la page" compact={compact}>
@@ -138,31 +131,6 @@ export function PageEditor({
           value={draft.title}
           maxLength={200}
           onChange={(title) => update({ title })}
-        />
-        <Field
-          label="Libellé dans les menus"
-          value={draft.navLabel}
-          maxLength={60}
-          hint={`Adresse de la page : ${pathOf(page)} (non modifiable ici)`}
-          onChange={(navLabel) => update({ navLabel })}
-        />
-      </Section>
-
-      <Section title="Référencement" compact={compact}>
-        <Field
-          label="Titre dans Google"
-          value={draft.seo.title}
-          maxLength={120}
-          hint="Environ 60 caractères sont affichés dans les résultats."
-          onChange={(title) => update({ seo: { ...draft.seo, title } })}
-        />
-        <TextField
-          label="Description dans Google"
-          rows={3}
-          value={draft.seo.description}
-          maxLength={400}
-          hint="Environ 150 caractères sont affichés. Unique à chaque page."
-          onChange={(description) => update({ seo: { ...draft.seo, description } })}
         />
       </Section>
 
@@ -250,7 +218,16 @@ export function PageEditor({
         />
       </Section>
 
-      <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-ink-100 bg-white/95 py-3 backdrop-blur">
+      {/* En back-office, la barre reprend l'aspect des cartes au-dessus et se
+          décolle du bas. En panneau, elle déborde sur le padding du conteneur
+          défilant : sans cela le texte passerait derrière elle sur les bords. */}
+      <div
+        className={`sticky flex flex-wrap items-center gap-3 bg-white/95 py-3 backdrop-blur ${
+          compact
+            ? 'bottom-0 -mx-5 border-t border-ink-100 px-5'
+            : 'bottom-4 mb-4 rounded-lg border border-ink-200 px-6 shadow-sm'
+        }`}
+      >
         <button
           type="button"
           onClick={onSave}

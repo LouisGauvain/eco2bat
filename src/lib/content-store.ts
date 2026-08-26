@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-} from 'firebase/firestore';
-import { collection } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 import { collections, getDb } from './firebase/client';
 import { companySchema, pageContentSchema, type Company, type PageContent } from '@/content/schema';
@@ -50,9 +42,12 @@ export function mergePage(page: Page, content: PageContent | null): Page {
   if (!content) return page;
   return {
     ...page,
-    navLabel: content.navLabel,
     title: content.title,
-    seo: content.seo,
+    // `navLabel` et `seo` ne sont volontairement pas repris : le libellé de
+    // menu et les métadonnées lues par Google sont figés dans le HTML au build.
+    // Les laisser diverger côté navigateur donnerait deux vérités pour une même
+    // page — et un menu qui change de mot d'une page à l'autre.
+
     hero: content.hero ?? undefined,
     blocks: content.blocks,
   };
@@ -77,16 +72,6 @@ export async function getPageContent(slug: string[]): Promise<PageContent | null
   }
 }
 
-/** Identifiants des pages ayant une surcharge — pour la liste du back-office. */
-export async function getOverriddenPageIds(): Promise<Set<string>> {
-  try {
-    const snapshot = await getDocs(collection(getDb(), collections.pages));
-    return new Set(snapshot.docs.map((entry) => entry.id));
-  } catch (error) {
-    console.error('[contenu] liste des surcharges impossible', error);
-    return new Set();
-  }
-}
 
 export async function savePageContent(slug: string[], content: PageContent): Promise<void> {
   await setDoc(doc(getDb(), collections.pages, pageDocId(slug)), {

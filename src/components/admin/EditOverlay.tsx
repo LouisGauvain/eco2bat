@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from './PageEditor';
+import { container } from '@/components/layout/container';
 import { pages } from '@/content';
 import { pathOf } from '@/content/types';
 import { useIsAdmin } from '@/lib/use-content';
@@ -24,6 +25,7 @@ export function EditOverlay() {
   const isAdmin = useIsAdmin();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   const page = pages.find((candidate) => pathOf(candidate) === normalize(pathname));
 
@@ -37,12 +39,43 @@ export function EditOverlay() {
     return () => document.body.classList.remove('lg:pr-[32rem]');
   }, [open]);
 
+  // Le bandeau est fixé en bas : sans cette réserve, il masquerait la dernière
+  // ligne du pied de page une fois arrivé au bout du défilement. On rallonge le
+  // pied de page lui-même plutôt que le `body`, sinon la réserve apparaîtrait
+  // en blanc sous le bloc sombre. La hauteur est mesurée plutôt que devinée :
+  // le bandeau passe sur deux lignes en écran étroit.
+  useEffect(() => {
+    const banner = bannerRef.current;
+    const footer = document.querySelector('footer');
+    if (!banner || !footer) return;
+
+    const apply = () => {
+      footer.style.paddingBottom = `${banner.offsetHeight}px`;
+    };
+    apply();
+
+    const observer = new ResizeObserver(apply);
+    observer.observe(banner);
+    return () => {
+      observer.disconnect();
+      footer.style.paddingBottom = '';
+    };
+  }, [isAdmin, pathname]);
+
   if (!isAdmin) return null;
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-ink-700 bg-ink-900 px-4 py-2 text-sm text-ink-100 print:hidden">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
+      <div
+        ref={bannerRef}
+        // `fixed` ignore le décalage posé sur le `body` : le bandeau doit donc
+        // reculer lui-même de la largeur du panneau, sinon il passe dessous et
+        // son contenu ne s'aligne plus sur la page.
+        className={`fixed bottom-0 left-0 z-50 border-t border-ink-700 bg-ink-900 py-2 text-sm text-ink-100 print:hidden ${
+          open ? 'right-0 lg:right-[32rem]' : 'right-0'
+        }`}
+      >
+        <div className={`${container} flex flex-wrap items-center gap-3`}>
           <span className="font-medium">Mode administrateur</span>
           {page ? (
             <button
@@ -77,7 +110,7 @@ export function EditOverlay() {
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-5 pb-24 pt-5">
+          <div className="flex-1 overflow-y-auto px-5 pt-5">
             <PageEditor page={page} compact />
           </div>
         </aside>
