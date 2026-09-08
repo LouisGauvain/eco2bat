@@ -49,6 +49,7 @@ export function CompanyForm() {
     }
 
     setStatus('saving');
+    setMessage(''); // relance l'animation du toast même si le texte est identique
     try {
       await saveCompany(parsed.data);
       setStatus('success');

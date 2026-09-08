@@ -1,108 +1,160 @@
 import type { Page } from '../types';
+import { site } from '../site';
 
-/**
- * Accueil — refonte totale.
- * L'ancienne page n'exposait aucune prestation, aucun CTA et aucune preuve de
- * crédibilité : elle ouvrait sur un schéma négaWatt et l'étymologie du nom.
- * Objectif de la nouvelle page : qualifier le visiteur en cinq secondes
- * (qui / quoi / où) puis l'orienter vers la bonne prestation.
- */
 export const home: Page = {
   slug: [],
   navLabel: 'Accueil',
-  title: "Bureau d'études en performance énergétique du bâtiment",
+  title: 'ECOnomie et ECOlogie dans le BATiment',
   seo: {
-    title: 'ECO2BAT — Audit énergétique et infiltrométrie à La Ciotat (13)',
+    title: "ECO2BAT — rénovation énergétique, DPE, audit à La Ciotat",
     description:
-      "Bureau d'études indépendant à La Ciotat : audit énergétique réglementaire et incitatif, DPE, test d'infiltrométrie, DTG copropriété. Ingénieur Arts et Métiers, RGE.",
+      "Bureau d'études en économie d'eau et d'énergie depuis 2008 : rénovation, DPE, audit énergétique, contrôles RT2012, AMO. La Ciotat et PACA.",
+    keywords: [
+      'Rénovation énergétique',
+      'DPE',
+      'Audit énergétique',
+      'RT2012',
+      'Infiltrométrie',
+      "AMO économies d'eau et d'énergie",
+      "Bureau d'études énergie La Ciotat",
+    ],
   },
   hero: {
     lead:
-      "Je suis Pierre-Yves Venaille, ingénieur Arts et Métiers. Depuis La Ciotat, j'accompagne particuliers, copropriétés et constructeurs sur la performance énergétique de leurs bâtiments : mesure, diagnostic et conseil, sans vendre ni poser aucun travaux.",
-    primary: { label: 'Demander un devis', href: '/contact/' },
-    secondary: { label: 'Découvrir la démarche', href: '/a-propos/' },
+      'Les ressources en eau et en énergie diminuent, alors que la population et nos usages augmentent.',
+    body: [
+      "Pour trouver un équilibre, il faut organiser l'avenir : nous vous accompagnons pour trouver les économies. Depuis 2008, nous apportons des conseils en économie d'eau et d'énergie au travers de missions volontaires ou réglementaires. À partir d'un inventaire de votre patrimoine, et de vos projets, nous proposons des améliorations possibles.",
+    ],
+    primary: { label: 'Parlons de votre projet', href: '#contact' },
+    secondary: { label: 'Nos missions', href: '/renovation-energetique/' },
+    tagline: site.motto,
+    stats: [
+      { value: String(site.since), label: 'Année de création' },
+      { value: 'DPE + Audit', label: 'Certifications' },
+      { value: '3 typologies', label: 'Maison · collectif · tertiaire' },
+    ],
+    image: {
+      url: '/negawatt.jpg',
+      alt: 'Démarche négaWatt : sobriété, efficacité, renouvelables',
+      width: 283,
+      height: 266,
+    },
+    quote: {
+      text: '« La ressource la plus propre… est celle dont on n’a pas besoin !!! »',
+      source: 'Source : Association négaWatt',
+    },
   },
   blocks: [
     {
       type: 'cards',
-      title: 'Mes prestations',
-      lead: 'Quatre entrées selon votre situation.',
+      eyebrow: 'Nos missions',
+      title: 'Du conseil simple à la mesure sur site',
+      lead: "À partir d'un inventaire de votre patrimoine et de vos projets, nous proposons des améliorations possibles.",
       cards: [
         {
-          title: 'Audit énergétique',
-          text: "Audit réglementaire avant vente d'une passoire thermique, ou audit incitatif pour préparer une rénovation globale et mobiliser les aides.",
-          href: '/audit-energetique/',
+          title: 'Rénovation énergétique',
+          text: "État des lieux de l'existant, besoins d'améliorations et opportunités de travaux.",
+          href: '/renovation-energetique/',
         },
         {
-          title: 'DPE',
-          text: 'Diagnostic de performance énergétique pour une maison, un immeuble entier ou un local tertiaire.',
+          title: 'Diagnostic de Performance Énergétique',
+          text: "Exigé pour la vente ou la location — et outil précieux pour mesurer l'efficacité d'une rénovation.",
           href: '/dpe/',
         },
         {
-          title: 'Infiltrométrie',
-          text: "Mesure de la perméabilité à l'air, en construction neuve pour la RE2020 comme en rénovation, caméra infrarouge à l'appui.",
-          href: '/infiltrometrie/',
+          title: 'Audit énergétique logement',
+          text: "Obligatoire pour la vente d'une maison individuelle ou d'un immeuble en monopropriété classé E, F ou G, et exigé par les dispositifs de financement.",
+          href: '/audit-energetique/',
         },
         {
-          title: 'Copropriétés',
-          text: "DTG, audit énergétique de copropriété et accompagnement du conseil syndical dans la définition d'un plan de travaux.",
-          href: '/coproprietes/',
+          title: 'Mesures physiques du bâtiment',
+          text: "Caméra infrarouge, perméabilité à l'air, enregistrements de consommations et de température.",
+          href: '/mesure-physique-du-batiment/',
+        },
+        {
+          title: 'Contrôles RT2012 fin de chantier',
+          text: "Mesure de perméabilité à l'air et attestation de respect de la réglementation thermique.",
+          href: '/controles-rt2012/',
+        },
+        {
+          title: "AMO économies d'eau et d'énergie",
+          text: 'Diagnostics Eau / Énergie pour les collectivités et les établissements touristiques.',
+          href: '/amo-economies-eau-energie/',
         },
       ],
     },
     {
-      type: 'section',
-      title: 'Un bureau d’études indépendant, pas un réseau',
-      body: [
-        "Vous avez en face de vous la personne qui viendra sur site, qui fera les mesures et qui rédigera le rapport. Pas de sous-traitance, pas de commercial intermédiaire.",
-        "Je ne vends pas de travaux et je ne perçois aucune commission d'installateur. Mon seul produit est le diagnostic : il n'a de valeur que s'il est honnête.",
+      type: 'logos',
+      eyebrow: 'Références',
+      title: 'Ils nous font confiance',
+      groups: [
+        { title: 'Collectivités', text: 'Mairies, Parcs Naturels Régionaux, Parc National, Syndicats Mixtes, EPTB.' },
+        { title: 'Copropriétés', text: 'Syndics, Conseils Syndicaux, gestionnaires de patrimoine.' },
+        { title: 'Établissements touristiques', text: 'Hôtels, campings, gîtes.' },
         {
-          list: [
-            'Ingénieur Arts et Métiers, bureau d’études créé en Provence',
-            'Qualifications RGE Études et OPQIBI',
-            'Matériel de mesure en propre : caméra thermique, porte soufflante, enregistreurs',
-          ],
+          title: 'Particuliers & pros du bâtiment',
+          text: "Architectes, artisans, bureaux d'études, notaires, experts judiciaires.",
         },
+      ],
+      caption: 'Parcs et collectivités accompagnés',
+      logos: [
+        { url: '/references/pnr-alpilles.png', alt: 'PNR des Alpilles' },
+        { url: '/references/pnr-baronnies-provencales.png', alt: 'PNR des Baronnies provençales' },
+        { url: '/references/pnr-camargue.jpg', alt: 'PNR de Camargue' },
+        { url: '/references/pnr-luberon.jpg', alt: 'PNR du Luberon' },
+        { url: '/references/pnr-mont-ventoux.png', alt: 'PNR du Mont-Ventoux' },
+        { url: '/references/pnr-narbonnaise.jpg', alt: 'PNR de la Narbonnaise' },
+        { url: '/references/pnr-prealpes-azur.png', alt: "PNR des Préalpes d'Azur" },
+        { url: '/references/pnr-pyrenees-catalanes.jpg', alt: 'PNR des Pyrénées catalanes' },
+        { url: '/references/pnr-queyras.png', alt: 'PNR du Queyras' },
+        { url: '/references/pnr-sainte-baume.png', alt: 'PNR de la Sainte-Baume' },
+        { url: '/references/pnr-verdon.jpg', alt: 'PNR du Verdon' },
+        { url: '/references/parc-national-cevennes.png', alt: 'Parc national des Cévennes' },
+        { url: '/references/esprit-parc-national.png', alt: 'Esprit Parc National' },
+        { url: '/references/valeurs-parc-naturel-regional.png', alt: 'Valeurs Parc Naturel Régional' },
+      ],
+      // Logos fournis par le client (Solair) ou récupérés sur les sites des
+      // partenaires : accord à confirmer avant mise en ligne. Idem et Indyen
+      // n'ont pas de logo : leur nom s'affiche en texte.
+      partners: [
+        { url: '/partenaires/savenergie.png', alt: 'SAVEnergie', href: 'https://www.savenergie.com/' },
+        { alt: 'Idem' },
+        { url: '/partenaires/solair.png', alt: 'Solair & Associés', href: 'https://www.entreprise-solair.com/' },
+        { alt: 'Indyen' },
+        { url: '/partenaires/ekosud.png', alt: 'Ekosud', href: 'https://ekosud.fr/' },
+        { url: '/partenaires/apzi-diagnostics.png', alt: 'APZ-i Diagnostics', href: 'https://apzidiagnostics.com/' },
       ],
     },
     {
-      type: 'steps',
-      title: 'Comment se passe une intervention',
-      steps: [
+      type: 'faq',
+      eyebrow: 'Questions fréquentes',
+      title: 'DPE, audit, financements : on vous éclaire',
+      items: [
         {
-          title: 'Premier échange',
-          text: "Vous m'exposez votre situation par téléphone ou via le formulaire. Je vous dis franchement si une prestation est utile, et laquelle.",
+          q: 'DPE ou audit énergétique : que me faut-il ?',
+          a: "Le DPE est exigé pour toute vente ou mise en location. Pour vendre une maison individuelle ou un immeuble en monopropriété classé E, F ou G, un audit énergétique est en plus obligatoire. L'audit est aussi la bonne base pour un projet de travaux : parlons-en ensemble.",
         },
         {
-          title: 'Devis et rendez-vous',
-          text: 'Vous recevez un devis détaillé. Une fois validé, nous fixons la date de visite selon vos contraintes.',
+          q: 'Le DPE est-il obligatoire pour mon immeuble collectif ?',
+          a: "Selon leur nombre de lots, les immeubles de logements collectifs de plus de 10 ans doivent pouvoir présenter un DPE, et l'actualiser tous les 10 ans.",
         },
         {
-          title: 'Visite et mesures',
-          text: "Relevé du bâti, des équipements et des usages. Selon la prestation : thermographie, test d'infiltrométrie, mesures d'ambiance.",
+          q: "Montez-vous les dossiers MaPrimeRénov' ?",
+          a: "Non. Le montage des demandes de financement d'une maison individuelle est assuré par un prestataire Mon Accompagnateur Rénov' (MAR) agréé. Nous réalisons en revanche l'audit énergétique exigé par ces dispositifs (MaPrimeRénov', CEE, éco-PTZ…).",
         },
         {
-          title: 'Rapport et restitution',
-          text: 'Vous recevez le rapport, puis nous le parcourons ensemble. Vous repartez avec un ordre de priorité des travaux, pas avec un catalogue.',
+          q: 'Intervenez-vous sur les bâtiments tertiaires ?',
+          a: "Oui. ECO2BAT dispose des certifications DPE et audit énergétique pour les maisons individuelles, les immeubles collectifs et les bâtiments tertiaires. Pour un projet de rénovation tertiaire, préférez l'audit énergétique au DPE.",
         },
       ],
-    },
-    {
-      type: 'callout',
-      tone: 'info',
-      title: 'Zone d’intervention',
-      text: "Basé à La Ciotat, j'interviens principalement dans les Bouches-du-Rhône et le Var. Pour un projet plus éloigné, contactez-moi : je vous dirai si le déplacement a du sens.",
     },
     {
       type: 'cta',
-      title: 'Parlons de votre projet',
-      text: "Décrivez votre bien et votre échéance : je vous réponds sous 48 heures ouvrées avec une orientation claire et, s'il y a lieu, un devis.",
-      primary: { label: 'Demander un devis', href: '/contact/' },
-      secondary: { label: '06 15 14 85 08', href: 'tel:+33615148508' },
+      title: 'Parlons ensemble de votre projet',
+      text: 'Nous vous conseillerons sur les missions les plus adaptées à votre situation et à votre patrimoine.',
+      primary: { label: 'Nous contacter', href: '#contact' },
     },
   ],
   status: 'draft',
   sitemapPriority: 1,
-  auditNote:
-    'Priorité 1 — Critique. Refonte totale. Valider avec le client la liste des prestations encore actives en 2026 et le périmètre géographique.',
 };

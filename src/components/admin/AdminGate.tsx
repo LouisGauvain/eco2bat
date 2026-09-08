@@ -4,7 +4,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } fr
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { container } from '@/components/layout/container';
+import { container } from '@/components/layout/ui';
 import { getClientAuth } from '@/lib/firebase/client';
 
 /**

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { Block, Rich } from './types';
+import type { Block, Panel, Rich } from './types';
 
 /**
  * Validation du contenu éditable depuis le back-office.
@@ -20,22 +20,55 @@ const richSchema: z.ZodType<Rich> = z.union([
   z.object({ ordered: z.array(z.string().min(1)) }),
 ]);
 
+const alignSchema = z.enum(['left', 'center', 'right']);
+
+const eyebrowSchema = z.string().trim().max(80).optional();
+
 const linkSchema = z.object({
   label: z.string().trim().min(1).max(80),
   href: z.string().trim().min(1).max(300),
+});
+
+/**
+ * Adresse d'image acceptée : un fichier livré avec le site (`/negawatt.jpg`)
+ * ou une image déposée depuis le back-office, servie en https. Le http simple
+ * est refusé — il ferait basculer la page en contenu mixte et le navigateur
+ * bloquerait l'image.
+ */
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .max(600)
+  .refine(
+    (value) => value.startsWith('/') || value.startsWith('https://'),
+    'Adresse d’image invalide : attendu un chemin local (/photo.jpg) ou une adresse https.',
+  );
+
+const panelSchema: z.ZodType<Panel> = z.object({
+  eyebrow: eyebrowSchema,
+  title: z.string().trim().max(200).optional(),
+  body: z.array(richSchema),
 });
 
 export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('section'),
     id: z.string().trim().max(60).optional(),
+    eyebrow: eyebrowSchema,
     title: z.string().trim().max(200).optional(),
     lead: z.string().trim().max(600).optional(),
     body: z.array(richSchema),
+    align: alignSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('panels'),
+    panels: z.array(panelSchema).min(1).max(3),
   }),
   z.object({
     type: z.literal('steps'),
+    eyebrow: eyebrowSchema,
     title: z.string().trim().max(200).optional(),
+    lead: z.string().trim().max(600).optional(),
     steps: z.array(
       z.object({
         title: z.string().trim().min(1).max(200),
@@ -45,8 +78,11 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('cards'),
+    id: z.string().trim().max(60).optional(),
+    eyebrow: eyebrowSchema,
     title: z.string().trim().max(200).optional(),
     lead: z.string().trim().max(600).optional(),
+    numbered: z.boolean().optional(),
     cards: z.array(
       z.object({
         title: z.string().trim().min(1).max(200),
@@ -57,6 +93,7 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('faq'),
+    eyebrow: eyebrowSchema,
     title: z.string().trim().max(200).optional(),
     items: z.array(
       z.object({
@@ -66,6 +103,52 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
     ),
   }),
   z.object({
+    type: z.literal('quote'),
+    text: z.string().trim().min(1).max(400),
+    source: z.string().trim().max(200).optional(),
+  }),
+  z.object({
+    type: z.literal('image'),
+    url: imageUrlSchema,
+    alt: z.string().trim().min(1).max(300),
+    caption: z.string().trim().max(300).optional(),
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
+    size: z.enum(['small', 'medium', 'full']).optional(),
+    align: alignSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('logos'),
+    eyebrow: eyebrowSchema,
+    title: z.string().trim().max(200).optional(),
+    lead: z.string().trim().max(600).optional(),
+    groups: z
+      .array(
+        z.object({
+          title: z.string().trim().min(1).max(200),
+          text: z.string().trim().max(600),
+        }),
+      )
+      .optional(),
+    caption: z.string().trim().max(120).optional(),
+    footnote: z.string().trim().max(300).optional(),
+    logos: z.array(
+      z.object({
+        url: imageUrlSchema,
+        alt: z.string().trim().min(1).max(200),
+      }),
+    ),
+    partners: z
+      .array(
+        z.object({
+          url: imageUrlSchema.optional(),
+          alt: z.string().trim().min(1).max(200),
+          href: z.string().trim().max(300).optional(),
+        }),
+      )
+      .optional(),
+  }),
+  z.object({
     type: z.literal('callout'),
     tone: z.enum(['info', 'warning']),
     title: z.string().trim().max(200).optional(),
@@ -73,10 +156,25 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('cta'),
+    eyebrow: eyebrowSchema,
     title: z.string().trim().min(1).max(200),
     text: z.string().trim().max(600).optional(),
     primary: linkSchema,
     secondary: linkSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('links'),
+    eyebrow: eyebrowSchema,
+    title: z.string().trim().max(200).optional(),
+    lead: z.string().trim().max(600).optional(),
+    links: z.array(
+      z.object({
+        label: z.string().trim().min(1).max(200),
+        href: z.string().trim().min(1).max(300),
+        text: z.string().trim().max(600).optional(),
+        group: z.string().trim().max(80).optional(),
+      }),
+    ),
   }),
 ]);
 
@@ -91,12 +189,40 @@ export const pageContentSchema = z.object({
   seo: z.object({
     title: z.string().trim().min(1).max(120),
     description: z.string().trim().min(1).max(400),
+    keywords: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
   }),
   hero: z
     .object({
+      eyebrow: eyebrowSchema,
       lead: z.string().trim().max(1200),
+      body: z.array(z.string().trim().min(1).max(1200)).optional(),
       primary: linkSchema.optional(),
       secondary: linkSchema.optional(),
+      tagline: z.string().trim().max(120).optional(),
+      image: z
+        .object({
+          url: imageUrlSchema,
+          alt: z.string().trim().min(1).max(300),
+          caption: z.string().trim().max(300).optional(),
+          width: z.number().int().positive().optional(),
+          height: z.number().int().positive().optional(),
+        })
+        .optional(),
+      quote: z
+        .object({
+          text: z.string().trim().min(1).max(300),
+          source: z.string().trim().max(120).optional(),
+        })
+        .optional(),
+      stats: z
+        .array(
+          z.object({
+            value: z.string().trim().min(1).max(20),
+            label: z.string().trim().min(1).max(80),
+          }),
+        )
+        .max(4)
+        .optional(),
     })
     .nullable()
     .optional(),

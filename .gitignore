@@ -1,4 +1,5 @@
 node_modules/
+elements_client/
 .next/
 out/
 build/

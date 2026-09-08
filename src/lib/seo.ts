@@ -5,12 +5,26 @@ import { site, siteUrl } from '@/content/site';
 import type { Page } from '@/content/types';
 
 /**
+ * Visuel de partage par défaut (1200×630). Sans lui, LinkedIn, WhatsApp et
+ * Slack affichent une carte grise : c'est la seule image que voit un lecteur
+ * avant d'avoir cliqué.
+ */
+const ogImage = {
+  url: `${siteUrl}/og-default.jpg`,
+  width: 1200,
+  height: 630,
+  alt: `${site.name} — ${site.tagline}`,
+};
+
+/**
  * Métadonnées d'une page.
  *
  * L'ancien site servait la même meta-description sur ses sept pages et une
  * balise keywords de plus de cent termes : aucune page n'était optimisée pour
  * une requête précise. Ici, title et description viennent obligatoirement du
  * registre de contenu — il est impossible de publier une page sans les écrire.
+ * La balise keywords, elle, n'est plus émise : les moteurs l'ignorent depuis
+ * longtemps. Les mots-clés du registre restent un outil de rédaction.
  */
 export function metadataFor(page: Page): Metadata {
   const url = `${siteUrl}${pathOf(page)}`;
@@ -29,6 +43,13 @@ export function metadataFor(page: Page): Metadata {
       url,
       title: page.seo.title,
       description: page.seo.description,
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: page.seo.title,
+      description: page.seo.description,
+      images: [ogImage.url],
     },
   };
 }
@@ -42,12 +63,31 @@ export function organizationJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
+    // Identifiant stable de l'entreprise : les autres blocs de données
+    // structurées peuvent s'y référer sans redécrire la fiche.
+    '@id': `${siteUrl}/#organization`,
     name: site.name,
+    legalName: site.legalName,
     description: site.tagline,
+    slogan: site.motto,
+    foundingDate: String(site.since),
     url: siteUrl,
     telephone: site.contact.phoneE164,
     email: site.contact.email,
-    image: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/logo.svg`,
+    // Une vraie image de partage, pas le favicon : Google demande une image
+    // exploitable (au moins 1200 px de large) pour les fiches locales.
+    image: `${siteUrl}/og-default.jpg`,
+    priceRange: site.priceRange,
+    // Champs renseignés seulement quand le client a fourni l'information :
+    // une fiche locale incomplète vaut mieux qu'une fiche inexacte.
+    ...(site.openingHours ? { openingHours: site.openingHours } : {}),
+    ...(site.sameAs.length > 0 ? { sameAs: site.sameAs } : {}),
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: site.geo.latitude,
+      longitude: site.geo.longitude,
+    },
     address: {
       '@type': 'PostalAddress',
       streetAddress: site.address.street,

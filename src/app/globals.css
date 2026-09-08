@@ -1,42 +1,53 @@
 @import 'tailwindcss';
 
 /*
- * Palette reprise du logo : bleu d'encre pour la structure et le texte,
- * vert pour l'accent. Deux couleurs seulement — un bureau d'études se présente
- * mieux avec de la rigueur typographique qu'avec des dégradés.
+ * Palette de la refonte (maquettes « Refonte Eco2bat ») : fond papier chaud,
+ * encre brune, vert du logo en accent et bleu pour les numéros et la fin du
+ * dégradé des boutons. Pas de bande de couleur pleine largeur : la page est
+ * une suite de cartes posées sur le papier.
  */
 @theme {
-  --color-ink-50: #f3f6fa;
-  --color-ink-100: #e3eaf3;
-  --color-ink-200: #c6d4e5;
-  --color-ink-300: #93aacb;
-  --color-ink-400: #5b7ba9;
-  --color-ink-500: #3a5b8a;
-  --color-ink-600: #24406b;
-  --color-ink-700: #1b3a6b;
-  --color-ink-800: #152c50;
-  --color-ink-900: #101f38;
+  /* Encre : neutres chauds, du plus clair au plus foncé. */
+  --color-ink-50: #fafaf9;
+  --color-ink-100: #f0efec;
+  --color-ink-200: #e7e5e4;
+  --color-ink-300: #d6d3d1;
+  --color-ink-400: #a8a29e;
+  --color-ink-500: #78716c;
+  --color-ink-600: #57534e;
+  --color-ink-700: #44403c;
+  --color-ink-800: #292524;
+  --color-ink-900: #1c1917;
 
-  --color-leaf-50: #f0f9f0;
-  --color-leaf-100: #ddf0dd;
-  --color-leaf-200: #bce2bc;
-  --color-leaf-300: #8ccd8c;
-  --color-leaf-400: #5cb45c;
-  --color-leaf-500: #3d9b3d;
-  --color-leaf-600: #2d7d2d;
-  --color-leaf-700: #256425;
-  --color-leaf-800: #1f501f;
+  /* Vert du logo (#379e32) : accent, surtitres, boutons. Le 500 est la teinte
+     exacte du logo ; le 600, un peu plus sombre, garde le contraste sur fond
+     clair pour le texte et les boutons. */
+  --color-leaf-50: #f0f8ef;
+  --color-leaf-100: #e2f1e0;
+  --color-leaf-200: #c3e3c0;
+  --color-leaf-300: #98d093;
+  --color-leaf-400: #62b55c;
+  --color-leaf-500: #379e32;
+  --color-leaf-600: #2b8527;
+  --color-leaf-700: #226b1f;
+  --color-leaf-800: #1a5218;
+  --color-leaf-900: #133d12;
 
-  --color-sand-50: #faf8f4;
-  --color-sand-100: #f2ede3;
+  /* Bleu du logo (#005ca9) : numéros des cartes et second ton du dégradé. */
+  --color-sea-100: #e0ecf7;
+  --color-sea-500: #005ca9;
+  --color-sea-600: #004b8a;
 
-  /* Polices chargées par next/font dans le layout racine : elles exposent
-     --font-source-sans et --font-source-serif sur <html>. */
+  /* Fond de page, fond des grandes cartes, fond des petites cartes, filets. */
+  --color-ground: #f6f5f2;
+  --color-paper: #fbfaf8;
+  --color-card: #fffdfa;
+  --color-edge: #ebe7e0;
+
+  /* Polices chargées par next/font dans le layout racine. */
   --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
-
-  /* Mesure de lecture confortable pour des pages majoritairement textuelles. */
-  --container-prose: 68ch;
+  --font-mono: var(--font-source-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
@@ -48,14 +59,151 @@ html {
 }
 
 body {
-  background-color: var(--color-white);
+  background-color: var(--color-ground);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Cible de focus visible partout : exigence RGAA, et l'ancien site n'en avait aucune. */
+/* Tailwind remet les boutons en `cursor: default` : on rétablit la main. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Teintes radiales des grandes cartes : un halo vert en haut à droite, un
+ * halo bleu en bas à gauche, ou les deux. C'est ce qui distingue une carte de
+ * la suivante sans changer de couleur de fond.
+ */
+.tint-green {
+  background:
+    radial-gradient(circle at 90% -5%, rgba(55, 158, 50, 0.13) 0%, transparent 40%),
+    var(--color-paper);
+}
+
+.tint-blue {
+  background:
+    radial-gradient(circle at -5% 100%, rgba(0, 92, 169, 0.1) 0%, transparent 40%),
+    var(--color-paper);
+}
+
+.tint-both {
+  background:
+    radial-gradient(circle at 90% -5%, rgba(55, 158, 50, 0.13) 0%, transparent 34%),
+    radial-gradient(circle at -5% 100%, rgba(0, 92, 169, 0.1) 0%, transparent 34%),
+    var(--color-paper);
+}
+
+/* Carte sombre des appels à l'action : dégradé vert profond, reflet en haut à droite. */
+.tint-dark {
+  background:
+    radial-gradient(circle at 85% -10%, rgba(255, 255, 255, 0.12) 0%, transparent 45%),
+    linear-gradient(150deg, var(--color-leaf-700), var(--color-leaf-900));
+}
+
+/*
+ * Entrée du hero de l'accueil : chaque élément monte en fondu, l'un après
+ * l'autre (`--rise-delay`). Neutralisé par la règle `prefers-reduced-motion`
+ * ci-dessous.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+/*
+ * Ouverture du widget de contact : le panneau jaillit du coin où se trouve le
+ * bouton « Parlons de votre projet ».
+ */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.72);
+    filter: blur(6px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.pop-in {
+  transform-origin: bottom right;
+  animation: pop-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Voile derrière le widget, en fondu. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+/*
+ * Décor animé du hero de l'accueil : halos de lumière qui dérivent (nature),
+ * trame de plan (bâtiment). Tout est en CSS et reste derrière le texte ; la règle
+ * `prefers-reduced-motion` fige l'ensemble.
+ */
+.hero-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  will-change: transform;
+  animation: drift var(--drift-duration, 22s) ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(var(--drift-x, 60px), var(--drift-y, -40px), 0) scale(1.15);
+  }
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(253, 252, 249, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(253, 252, 249, 0.07) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse at 80% 20%, black 0%, transparent 60%);
+}
+
+/* Cible de focus visible partout : exigence RGAA. */
 :focus-visible {
   outline: 3px solid var(--color-leaf-500);
   outline-offset: 2px;

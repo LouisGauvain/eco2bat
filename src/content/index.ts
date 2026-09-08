@@ -1,29 +1,28 @@
 import type { Page } from './types';
 import { pathOf } from './types';
 import { home } from './pages/home';
-import { auditEnergetique, auditVente } from './pages/audit-energetique';
-import { infiltrometrie, infiltrometrieNeuf } from './pages/infiltrometrie';
-import { dpe, formationArtisans, coproprietes, diagnosticLogement } from './pages/services';
-import { aPropos } from './pages/a-propos';
+import { renovationEnergetique } from './pages/renovation-energetique';
+import { dpe } from './pages/dpe';
+import { auditEnergetique } from './pages/audit-energetique';
+import { mesurePhysique } from './pages/mesure-physique';
+import { controlesRt2012 } from './pages/controles-rt2012';
+import { amoEauEnergie } from './pages/amo-eau-energie';
 import { contact } from './pages/contact';
 import { mentionsLegales, politiqueConfidentialite } from './pages/legal';
 
 /**
- * Registre des pages du site, dans l'ordre de l'arborescence cible de l'audit.
- * Ajouter une page ici suffit à la rendre, à la référencer dans le sitemap et
- * à lui donner ses métadonnées.
+ * Registre des pages du site, dans l'ordre de l'arborescence décrite par le
+ * client dans son document « SITE INTERNET ». Ajouter une page ici suffit à la
+ * rendre, à la référencer dans le sitemap et à lui donner ses métadonnées.
  */
 export const pages: Page[] = [
   home,
-  auditEnergetique,
-  auditVente,
+  renovationEnergetique,
   dpe,
-  infiltrometrie,
-  infiltrometrieNeuf,
-  formationArtisans,
-  coproprietes,
-  diagnosticLogement,
-  aPropos,
+  auditEnergetique,
+  mesurePhysique,
+  controlesRt2012,
+  amoEauEnergie,
   contact,
   mentionsLegales,
   politiqueConfidentialite,
@@ -51,8 +50,7 @@ export function contentRoutePages(): Page[] {
 
 /**
  * Pages à publier dans le sitemap. Une page encore en rédaction (`todo`) est
- * exclue et rendue en `noindex` : mieux vaut ne pas exister dans l'index de
- * Google que d'y entrer avec une page à trous.
+ * exclue et rendue en `noindex`.
  */
 export function indexablePages(): Page[] {
   return pages.filter((page) => page.status !== 'todo');

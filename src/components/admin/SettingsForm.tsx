@@ -31,7 +31,6 @@ export function SettingsForm() {
     const parsed = settingsSchema.safeParse({
       bannerEnabled: form.get('bannerEnabled') === 'on',
       bannerText: form.get('bannerText') ?? '',
-      availability: form.get('availability') ?? '',
       responseTime: form.get('responseTime') ?? '',
     });
 
@@ -42,6 +41,7 @@ export function SettingsForm() {
     }
 
     setStatus('saving');
+    setMessage(''); // relance l'animation du toast même si le texte est identique
 
     try {
       await saveSettings(parsed.data);
@@ -116,21 +116,6 @@ export function SettingsForm() {
             maxLength={120}
             defaultValue={settings.responseTime}
             placeholder="48 heures ouvrées"
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="availability" className="block text-sm font-medium text-ink-800">
-            Disponibilité actuelle
-          </label>
-          <input
-            id="availability"
-            name="availability"
-            type="text"
-            maxLength={240}
-            defaultValue={settings.availability}
-            placeholder="Prochaines interventions disponibles à partir de mi-septembre."
             className={inputClass}
           />
         </div>

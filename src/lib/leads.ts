@@ -17,15 +17,34 @@ import { z } from 'zod';
  * plutôt que par une demande d'informations complémentaires.
  */
 
+/**
+ * Une entrée par mission du site, dans le même ordre que le menu : le visiteur
+ * doit retrouver dans le formulaire le nom de la page d'où il vient.
+ * Les demandes déposées avant la refonte portent d'anciennes valeurs, absentes
+ * de cette liste : `labelOf` les affiche telles quelles dans le back-office.
+ */
 export const PRESTATIONS = [
-  { value: 'audit-energetique', label: 'Audit énergétique (rénovation)' },
-  { value: 'audit-vente', label: 'Audit obligatoire avant vente' },
-  { value: 'dpe', label: 'DPE' },
-  { value: 'infiltrometrie', label: "Test d'infiltrométrie" },
-  { value: 'coproprietes', label: 'Copropriété (DTG, audit)' },
-  { value: 'formation', label: 'Formation artisans' },
+  { value: 'renovation', label: 'Rénovation énergétique (conseil)', path: '/renovation-energetique/' },
+  { value: 'dpe', label: 'DPE', path: '/dpe/' },
+  { value: 'audit-energetique', label: 'Audit énergétique logement', path: '/audit-energetique/' },
+  { value: 'mesure-physique', label: 'Mesure physique du bâtiment', path: '/mesure-physique-du-batiment/' },
+  { value: 'controle-rt2012', label: 'Contrôle RT2012 fin de chantier', path: '/controles-rt2012/' },
+  { value: 'amo-eau-energie', label: 'AMO économies d’eau et d’énergie', path: '/amo-economies-eau-energie/' },
   { value: 'autre', label: 'Je ne sais pas encore' },
 ] as const;
+
+/**
+ * Prestation à présélectionner d'après la page d'où le visiteur ouvre le
+ * formulaire : depuis la page DPE, son besoin est déjà connu. `path` suit les
+ * routes de `mainNav` — les deux doivent rester alignés. Hors page de mission
+ * (accueil, mentions légales…), aucune valeur n'est devinée : le champ reste
+ * sur « Choisissez… », qui est obligatoire.
+ */
+export function prestationForPath(pathname: string | null | undefined): string {
+  if (!pathname) return '';
+  const route = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  return PRESTATIONS.find((item) => 'path' in item && item.path === route)?.value ?? '';
+}
 
 export const PROPERTY_TYPES = [
   { value: 'maison', label: 'Maison individuelle' },
@@ -33,6 +52,7 @@ export const PROPERTY_TYPES = [
   { value: 'immeuble', label: 'Immeuble / copropriété' },
   { value: 'tertiaire', label: 'Local tertiaire' },
   { value: 'neuf', label: 'Construction neuve' },
+  { value: 'patrimoine', label: 'Patrimoine de plusieurs bâtiments' },
 ] as const;
 
 export const DEADLINES = [
@@ -74,6 +94,8 @@ export const leadSchema = z.object({
   consent: z.literal(true, {
     errorMap: () => ({ message: 'Merci d’accepter le traitement de vos données.' }),
   }),
+  /** Accord explicite pour conserver l'e-mail et envoyer les actualités. */
+  newsletter: z.boolean().default(false),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;

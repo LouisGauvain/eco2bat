@@ -117,9 +117,10 @@ export const politiqueConfidentialite: Page = {
             'Identité et coordonnées (nom, courriel, téléphone) — pour vous répondre',
             'Description de votre projet (type de prestation, type de bien, commune, échéance) — pour qualifier la demande et établir un devis',
             'Date de la demande — pour le suivi commercial',
+            "Votre accord éventuel pour recevoir nos actualités par courriel (aides, réglementation, conseils) — uniquement si vous cochez la case correspondante",
           ],
         },
-        "La base légale est votre consentement, matérialisé par l'envoi du formulaire, ainsi que l'exécution de mesures précontractuelles prises à votre demande.",
+        "La base légale est votre consentement, matérialisé par l'envoi du formulaire, ainsi que l'exécution de mesures précontractuelles prises à votre demande. L'envoi d'actualités repose sur un consentement distinct, que vous pouvez retirer à tout moment en nous écrivant ou via le lien de désinscription de chaque courriel.",
       ],
     },
     {
@@ -155,7 +156,8 @@ export const politiqueConfidentialite: Page = {
       title: 'Cookies et mesure d’audience',
       body: [
         "En l'état, ce site ne dépose aucun cookie de mesure d'audience ni de publicité. Seuls des cookies strictement nécessaires au fonctionnement peuvent être utilisés ; ils ne requièrent pas de consentement.",
-        "Si une solution de mesure d'audience est ajoutée par la suite, cette page devra être mise à jour et un bandeau de consentement mis en place.",
+        "Le bandeau affiché lors de votre première visite vous permet d'indiquer si vous acceptez que votre courriel soit conservé pour l'envoi de nos actualités. Votre choix est enregistré dans votre navigateur et modifiable à tout moment via le bouton en bas à gauche de chaque page.",
+        "Si une solution de mesure d'audience est ajoutée par la suite, cette page et le bandeau seront mis à jour.",
       ],
     },
   ],

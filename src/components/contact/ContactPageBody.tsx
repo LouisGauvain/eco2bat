@@ -1,90 +1,80 @@
 'use client';
 
 import { ContactForm } from './ContactForm';
-import { container } from '@/components/layout/container';
+import { PageView } from '@/components/content/PageView';
+import { card, eyebrow, shell } from '@/components/layout/ui';
 import type { Page } from '@/content/types';
-import { useCompany, usePageContent } from '@/lib/use-content';
+import { useCompany } from '@/lib/use-content';
 
 /**
- * Page Contact.
+ * Page Contact : le formulaire qualifiant à gauche, les coordonnées à droite.
  *
- * Elle a sa propre route parce qu'elle embarque le formulaire qualifiant,
- * mais son titre, son accroche et les coordonnées affichées à côté du
- * formulaire se modifient depuis le back-office comme sur les autres pages.
+ * Le hero et le texte viennent du registre de contenu, comme sur les pages de
+ * mission (`PageView`) ; les coordonnées, elles, sont lues depuis le
+ * back-office (`useCompany`) pour ne jamais être écrites en double.
  */
-export function ContactPageBody({ page: source }: { page: Page }) {
-  const page = usePageContent(source);
+export function ContactPageBody({ page }: { page: Page }) {
   const site = useCompany();
 
   return (
-    <article>
-      <header className="border-b border-ink-100 bg-linear-to-b from-ink-50 to-white">
-        <div className={`${container} pb-12 pt-10`}>
-          <h1 className="font-display text-3xl leading-tight text-ink-900 sm:text-4xl">
-            {page.title}
-          </h1>
-          {page.hero && (
-            <p className="mt-5 text-lg leading-relaxed text-ink-600">
-              {page.hero.lead}
-            </p>
-          )}
-        </div>
-      </header>
-
-      <div className={`${container} grid gap-12 py-14 lg:grid-cols-[1fr_20rem]`}>
-        <div>
-          <h2 className="sr-only">Formulaire de demande</h2>
+    <PageView page={page}>
+      <div className="grid items-start gap-8 pb-4 lg:grid-cols-[1.35fr_1fr]">
+        <section className={`${shell} bg-card p-6 sm:p-8`}>
+          <h2 className={`${eyebrow} mb-5`}>Votre demande</h2>
           <ContactForm />
-        </div>
+        </section>
 
-        <aside className="space-y-8 lg:border-l lg:border-ink-100 lg:pl-8">
-          <section>
-            <h2 className="font-display text-xl text-ink-900">Directement</h2>
-            <p className="mt-3 leading-relaxed text-ink-600">
-              Un appel vaut souvent mieux qu’un formulaire. Si je ne réponds
-              pas, c’est que je suis sur un chantier : laissez un message, je
-              rappelle.
+        <aside className="flex flex-col gap-4">
+          <section className={`${card} p-6`}>
+            <h2 className={eyebrow}>Directement</h2>
+            <p className="mt-3 text-[14px] leading-[1.7] text-ink-600">
+              Un appel vaut souvent mieux qu’un formulaire. Si nous ne répondons pas, c’est que
+              nous sommes en visite : laissez un message, nous rappelons.
             </p>
             <p className="mt-4">
               <a
                 href={`tel:${site.contact.phoneE164}`}
-                className="text-lg font-semibold text-ink-900 underline decoration-leaf-400 underline-offset-4"
+                className="text-[19px] font-bold tabular-nums text-ink-900 underline decoration-leaf-400 underline-offset-4 hover:text-leaf-700"
               >
                 {site.contact.phone}
               </a>
             </p>
-            <p className="mt-2 text-sm text-ink-600">
-              <a href={`mailto:${site.contact.email}`} className="hover:text-leaf-700">
+            <p className="mt-2 text-[14px]">
+              <a href={`mailto:${site.contact.email}`} className="text-ink-600 hover:text-leaf-700">
                 {site.contact.email}
               </a>
             </p>
           </section>
 
-          <section>
-            <h2 className="font-display text-xl text-ink-900">Délai de réponse</h2>
-            <p className="mt-3 leading-relaxed text-ink-600">
-              Je réponds à toute demande sous {site.responseTime}. Si votre
-              échéance est plus courte, indiquez-le : je vous dirai franchement
-              si je peux tenir le délai.
-            </p>
-          </section>
+          {/* Encart affiché seulement si le délai est renseigné : c'est un
+              engagement pris devant le visiteur. */}
+          {site.responseTime && (
+            <section className={`${card} p-6`}>
+              <h2 className={eyebrow}>Délai de réponse</h2>
+              <p className="mt-3 text-[14px] leading-[1.7] text-ink-600">
+                Nous répondons à toute demande sous {site.responseTime}. Si votre échéance est
+                plus courte, indiquez-le : nous vous dirons franchement si nous pouvons la tenir.
+              </p>
+            </section>
+          )}
 
-          <section>
-            <h2 className="font-display text-xl text-ink-900">Le bureau d’études</h2>
-            <address className="mt-3 leading-relaxed not-italic text-ink-600">
-              {site.legalName}
+          <section className={`${card} p-6`}>
+            <h2 className={eyebrow}>Le bureau d’études</h2>
+            <address className="mt-3 text-[14px] not-italic leading-[1.7] text-ink-600">
+              <span className="block font-bold text-ink-900">{site.legalName}</span>
+              {site.owner.name} — {site.owner.role}
               <br />
               {site.address.street}
               <br />
               {site.address.postalCode} {site.address.city}
             </address>
-            <p className="mt-3 text-sm text-ink-500">
-              Les rendez-vous ont lieu sur le bien à diagnostiquer, pas au
-              bureau.
+            <p className="mt-3 text-[13px] leading-[1.6] text-ink-500">
+              Les rendez-vous ont lieu sur le bien étudié, pas au bureau. Nous intervenons dans
+              toute la région {site.address.region}.
             </p>
           </section>
         </aside>
       </div>
-    </article>
+    </PageView>
   );
 }

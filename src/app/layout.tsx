@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Source_Sans_3, Source_Serif_4 } from 'next/font/google';
+import { Source_Code_Pro, Source_Sans_3, Source_Serif_4 } from 'next/font/google';
 
 import './globals.css';
 import { site, siteUrl } from '@/content/site';
@@ -11,30 +11,37 @@ import { site, siteUrl } from '@/content/site';
  * le back-office, qui a sa propre interface, ne les hérite pas.
  */
 
+// Source Sans 3 pour le texte courant : ses chiffres et ses sigles (DPE,
+// RT 2012, kWh/m².an) restent nets aux petites tailles.
 const sans = Source_Sans_3({
   subsets: ['latin'],
+  style: ['normal', 'italic'],
   display: 'swap',
   variable: '--font-source-sans',
 });
 
-const serif = Source_Serif_4({
+// Source Serif 4 porte les titres : même dessin de base que la sans.
+const display = Source_Serif_4({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-source-serif',
+});
+
+// Source Code Pro pour les numéros des cartes (01, 02…) et les chiffres clés.
+const mono = Source_Code_Pro({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  display: 'swap',
+  variable: '--font-source-mono',
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: `${site.name} — ${site.tagline}`,
-    // Chaque page fournit son title complet, orienté requête : pas de suffixe
-    // automatique qui rognerait les 60 caractères utiles.
     template: '%s',
   },
   description: site.tagline,
-  // `/favicon.ico` est le fichier que les navigateurs réclament d'office, même
-  // sans balise. Sans lui, la requête retombait sur la route générique
-  // `[...slug]`, qui ne peut pas la servir en export statique.
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -48,7 +55,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${sans.variable} ${serif.variable}`}>
+    <html lang="fr" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

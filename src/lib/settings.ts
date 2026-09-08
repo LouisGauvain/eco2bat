@@ -21,8 +21,6 @@ export const settingsSchema = z.object({
   /** Bandeau affiché en haut du site — congés, délai exceptionnel, annonce. */
   bannerEnabled: z.boolean(),
   bannerText: z.string().trim().max(240),
-  /** Disponibilité annoncée sur la page Contact. */
-  availability: z.string().trim().max(240),
   /** Délai de réponse annoncé, s'il diffère de la valeur par défaut. */
   responseTime: z.string().trim().max(120),
 });
@@ -32,7 +30,6 @@ export type Settings = z.infer<typeof settingsSchema>;
 export const defaultSettings: Settings = {
   bannerEnabled: false,
   bannerText: '',
-  availability: '',
   responseTime: '',
 };
 

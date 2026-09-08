@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { BlockList } from './BlockEditor';
 import { Field, TextField } from './fields';
+import { ImageField } from './ImageField';
 import { Toast } from './Toast';
 import { pageContentSchema, type PageContent } from '@/content/schema';
 import type { Block, Page } from '@/content/types';
@@ -79,6 +80,7 @@ export function PageEditor({
     }
 
     setStatus('saving');
+    setMessage(''); // relance l'animation du toast même si le texte est identique
     try {
       await savePageContent(page.slug, parsed.data);
       setOverridden(true);
@@ -97,6 +99,7 @@ export function PageEditor({
     }
 
     setStatus('saving');
+    setMessage('');
     try {
       await resetPageContent(page.slug);
       setDraft(pageContentOf(page));
@@ -146,6 +149,26 @@ export function PageEditor({
           }
         />
         {draft.hero && (
+          <TextField
+            label="Texte de présentation"
+            rows={6}
+            value={(draft.hero.body ?? []).join('\n\n')}
+            hint="Facultatif, affiché sous l’accroche. Une ligne vide sépare deux paragraphes."
+            onChange={(text) =>
+              update({
+                hero: {
+                  ...draft.hero!,
+                  body: text
+                    .split(/\n{2,}/)
+                    .map((paragraph) => paragraph.trim())
+                    .filter(Boolean),
+                },
+              })
+            }
+          />
+        )}
+
+        {draft.hero && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
               label="Bouton principal — libellé"
@@ -156,7 +179,7 @@ export function PageEditor({
                   hero: {
                     ...draft.hero!,
                     primary: label
-                      ? { label, href: draft.hero?.primary?.href ?? '/contact/' }
+                      ? { label, href: draft.hero?.primary?.href ?? '#contact' }
                       : undefined,
                   },
                 })
@@ -207,6 +230,53 @@ export function PageEditor({
                 })
               }
             />
+          </div>
+        )}
+
+        {draft.hero && (
+          <div className="space-y-3 border-t border-ink-100 pt-4">
+            <ImageField
+              value={draft.hero.image ?? { url: '' }}
+              onChange={(image) =>
+                update({
+                  hero: {
+                    ...draft.hero!,
+                    image: image.url
+                      ? {
+                          alt: draft.hero?.image?.alt ?? '',
+                          caption: draft.hero?.image?.caption,
+                          ...image,
+                          url: image.url,
+                        }
+                      : undefined,
+                  },
+                })
+              }
+            />
+            {draft.hero.image && (
+              <>
+                <Field
+                  label="Description de l’image"
+                  value={draft.hero.image.alt}
+                  maxLength={300}
+                  hint="Obligatoire : lue par les lecteurs d’écran et par les moteurs de recherche."
+                  onChange={(alt) =>
+                    update({ hero: { ...draft.hero!, image: { ...draft.hero!.image!, alt } } })
+                  }
+                />
+                <Field
+                  label="Légende"
+                  value={draft.hero.image.caption ?? ''}
+                  maxLength={300}
+                  hint="Facultative, affichée sous l’image."
+                  onChange={(caption) =>
+                    update({
+                      hero: { ...draft.hero!, image: { ...draft.hero!.image!, caption } },
+                    })
+                  }
+                />
+              </>
+            )}
           </div>
         )}
       </Section>
@@ -287,32 +357,69 @@ function normalize(content: PageContent): PageContent {
     hero: content.hero?.lead.trim()
       ? {
           lead: content.hero.lead,
+          body: content.hero.body?.length ? content.hero.body : undefined,
           primary: content.hero.primary?.label ? content.hero.primary : undefined,
           secondary: content.hero.secondary?.label ? content.hero.secondary : undefined,
+          // Une image sans description serait refusée à la validation : on la
+          // retire plutôt que de bloquer l'enregistrement de toute la page.
+          image: content.hero.image?.alt.trim()
+            ? { ...content.hero.image, caption: blank(content.hero.image.caption) }
+            : undefined,
         }
       : null,
     blocks: content.blocks.map((block): Block => {
       switch (block.type) {
         case 'section':
-          return { ...block, id: blank(block.id), title: blank(block.title), lead: blank(block.lead) };
+          return {
+            ...block,
+            id: blank(block.id),
+            eyebrow: blank(block.eyebrow),
+            title: blank(block.title),
+            lead: blank(block.lead),
+          };
+        case 'panels':
+          return {
+            ...block,
+            panels: block.panels.map((panel) => ({
+              ...panel,
+              eyebrow: blank(panel.eyebrow),
+              title: blank(panel.title),
+            })),
+          };
         case 'steps':
-          return { ...block, title: blank(block.title) };
+          return { ...block, eyebrow: blank(block.eyebrow), title: blank(block.title), lead: blank(block.lead) };
         case 'cards':
           return {
             ...block,
+            eyebrow: blank(block.eyebrow),
             title: blank(block.title),
             lead: blank(block.lead),
             cards: block.cards.map((card) => ({ ...card, href: blank(card.href) })),
           };
         case 'faq':
-          return { ...block, title: blank(block.title) };
+          return { ...block, eyebrow: blank(block.eyebrow), title: blank(block.title) };
+        case 'logos':
+          return { ...block, eyebrow: blank(block.eyebrow), title: blank(block.title), lead: blank(block.lead) };
+        case 'quote':
+          return { ...block, source: blank(block.source) };
+        case 'image':
+          return { ...block, caption: blank(block.caption) };
         case 'callout':
           return { ...block, title: blank(block.title) };
         case 'cta':
           return {
             ...block,
+            eyebrow: blank(block.eyebrow),
             text: blank(block.text),
             secondary: block.secondary?.label ? block.secondary : undefined,
+          };
+        case 'links':
+          return {
+            ...block,
+            eyebrow: blank(block.eyebrow),
+            title: blank(block.title),
+            lead: blank(block.lead),
+            links: block.links.map((link) => ({ ...link, text: blank(link.text) })),
           };
       }
     }),

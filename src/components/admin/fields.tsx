@@ -83,6 +83,42 @@ export function TextField({
   );
 }
 
+/** Choix dans une liste fermée : ton d'un encadré, alignement, taille d'image. */
+export function SelectField<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  hint,
+  disabled,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-ink-800">{label}</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value as T)}
+        className={`${inputClass} disabled:bg-ink-50 disabled:text-ink-400`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {hint && <span className="mt-1 block text-xs text-ink-500">{hint}</span>}
+    </label>
+  );
+}
+
 /**
  * Compteur de caractères. Sur un titre SEO ou une meta-description, dépasser
  * la longueur utile fait tronquer le texte dans les résultats de recherche :

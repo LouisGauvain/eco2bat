@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from './PageEditor';
-import { container } from '@/components/layout/container';
+import { container } from '@/components/layout/ui';
 import { pages } from '@/content';
 import { pathOf } from '@/content/types';
 import { useIsAdmin } from '@/lib/use-content';

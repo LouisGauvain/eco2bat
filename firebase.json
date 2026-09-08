@@ -1,35 +1,94 @@
 {
   "hosting": {
     "public": "out",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "trailingSlash": true,
     "cleanUrls": false,
     "redirects": [
       {
-        "source": "/infiltrometrie/neuf-rt-2012",
-        "destination": "/infiltrometrie/construction-neuve/",
+        "source": "/infiltrometrie/neuf-rt-2012{,/}",
+        "destination": "/controles-rt2012/",
         "type": 301
       },
       {
-        "source": "/infiltrometrie/renovation",
-        "destination": "/infiltrometrie/",
+        "source": "/infiltrometrie/construction-neuve{,/}",
+        "destination": "/controles-rt2012/",
         "type": 301
       },
       {
-        "source": "/particuliers",
-        "destination": "/diagnostic-logement/",
+        "source": "/infiltrometrie/renovation{,/}",
+        "destination": "/mesure-physique-du-batiment/",
         "type": 301
       },
       {
-        "source": "/moyens-2",
-        "destination": "/a-propos/",
+        "source": "/infiltrometrie{,/}",
+        "destination": "/mesure-physique-du-batiment/",
         "type": 301
       },
-      { "source": "/feed", "destination": "/", "type": 301 },
-      { "source": "/:path*/feed", "destination": "/:path*/", "type": 301 },
-      { "source": "/category/**", "destination": "/", "type": 301 },
-      { "source": "/tag/**", "destination": "/", "type": 301 },
-      { "source": "/author/**", "destination": "/a-propos/", "type": 301 },
+      {
+        "source": "/formation-artisans{,/}",
+        "destination": "/controles-rt2012/",
+        "type": 301
+      },
+      {
+        "source": "/audit-energetique/vente{,/}",
+        "destination": "/audit-energetique/",
+        "type": 301
+      },
+      {
+        "source": "/coproprietes{,/}",
+        "destination": "/renovation-energetique/",
+        "type": 301
+      },
+      {
+        "source": "/diagnostic-logement{,/}",
+        "destination": "/renovation-energetique/",
+        "type": 301
+      },
+      {
+        "source": "/particuliers{,/}",
+        "destination": "/renovation-energetique/",
+        "type": 301
+      },
+      {
+        "source": "/a-propos{,/}",
+        "destination": "/contact/",
+        "type": 301
+      },
+      {
+        "source": "/moyens-2{,/}",
+        "destination": "/contact/",
+        "type": 301
+      },
+      {
+        "source": "/feed{,/}",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/:path*/feed{,/}",
+        "destination": "/:path*/",
+        "type": 301
+      },
+      {
+        "source": "/category/**",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/tag/**",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/author/**",
+        "destination": "/contact/",
+        "type": 301
+      },
       {
         "source": "/wp-content/**",
         "destination": "/",
@@ -40,9 +99,18 @@
       {
         "source": "**",
         "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
           {
             "key": "Strict-Transport-Security",
             "value": "max-age=63072000; includeSubDomains; preload"
@@ -52,7 +120,10 @@
       {
         "source": "/_next/static/**",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
         ]
       }
     ]
@@ -62,10 +133,19 @@
     "indexes": "firestore.indexes.json"
   },
   "emulators": {
-    "auth": { "port": 9099 },
-    "firestore": { "port": 8080 },
-    "hosting": { "port": 5055 },
-    "ui": { "enabled": true, "port": 4000 },
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5055
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
     "singleProjectMode": true
   }
 }

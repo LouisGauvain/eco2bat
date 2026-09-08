@@ -6,12 +6,14 @@ import {
   AddButton,
   Field,
   ItemControls,
+  SelectField,
   TextField,
   moved,
   removed,
   replaced,
 } from './fields';
-import type { Block } from '@/content/types';
+import { ImageField } from './ImageField';
+import type { Align, Block } from '@/content/types';
 import { richToText, textToRich } from '@/lib/rich-text';
 
 /**
@@ -24,23 +26,48 @@ import { richToText, textToRich } from '@/lib/rich-text';
 
 const BLOCK_LABELS: Record<Block['type'], string> = {
   section: 'Section de texte',
+  panels: 'Cartes côte à côte',
   steps: 'Étapes numérotées',
   cards: 'Cartes',
   faq: 'Questions fréquentes',
+  quote: 'Citation',
+  image: 'Image',
+  logos: 'Logos de références',
   callout: 'Encadré',
   cta: 'Appel à l’action',
+  links: 'Liens utiles',
 };
+
+const ALIGN_OPTIONS: { value: Align; label: string }[] = [
+  { value: 'left', label: 'À gauche' },
+  { value: 'center', label: 'Au centre' },
+  { value: 'right', label: 'À droite' },
+];
 
 function emptyBlock(type: Block['type']): Block {
   switch (type) {
     case 'section':
       return { type: 'section', title: '', body: [] };
+    case 'panels':
+      return {
+        type: 'panels',
+        panels: [
+          { eyebrow: '', title: '', body: [] },
+          { eyebrow: '', title: '', body: [] },
+        ],
+      };
+    case 'logos':
+      return { type: 'logos', title: '', logos: [{ url: '', alt: '' }] };
     case 'steps':
       return { type: 'steps', title: '', steps: [{ title: '', text: '' }] };
     case 'cards':
       return { type: 'cards', title: '', cards: [{ title: '', text: '' }] };
     case 'faq':
       return { type: 'faq', title: '', items: [{ q: '', a: '' }] };
+    case 'quote':
+      return { type: 'quote', text: '' };
+    case 'image':
+      return { type: 'image', url: '', alt: '' };
     case 'callout':
       return { type: 'callout', tone: 'info', title: '', text: '' };
     case 'cta':
@@ -48,8 +75,10 @@ function emptyBlock(type: Block['type']): Block {
         type: 'cta',
         title: '',
         text: '',
-        primary: { label: 'Demander un devis', href: '/contact/' },
+        primary: { label: 'Demander un devis', href: '#contact' },
       };
+    case 'links':
+      return { type: 'links', title: '', links: [{ label: '', href: '' }] };
   }
 }
 
@@ -60,7 +89,15 @@ function summarize(block: Block): string {
     case 'steps':
     case 'cards':
     case 'faq':
+    case 'links':
+    case 'logos':
       return block.title || '(sans titre)';
+    case 'panels':
+      return block.panels.map((panel) => panel.eyebrow || panel.title).filter(Boolean).join(' / ') || '(sans titre)';
+    case 'quote':
+      return block.text || '(citation vide)';
+    case 'image':
+      return block.alt || '(image sans description)';
     case 'callout':
       return block.title || block.text || '(encadré vide)';
     case 'cta':
@@ -176,12 +213,177 @@ function BlockFields({
             hint="Une ligne vide sépare deux paragraphes. « ## » commence un sous-titre, « - » un point de liste, « 1. » une liste numérotée."
             onChange={(text) => onChange({ ...block, body: textToRich(text) })}
           />
+          <SelectField
+            label="Alignement du texte"
+            value={block.align ?? 'left'}
+            options={ALIGN_OPTIONS}
+            hint="Le texte courant se lit mieux aligné à gauche : réserver le centrage aux sections courtes."
+            onChange={(align) => onChange({ ...block, align })}
+          />
+        </>
+      );
+
+    case 'panels':
+      return (
+        <>
+          <p className="text-xs text-ink-500">
+            Deux ou trois cartes côte à côte, chacune avec son surtitre. Sur mobile elles s’empilent.
+          </p>
+          <Repeatable
+            items={block.panels}
+            label="la carte"
+            addLabel="Ajouter une carte"
+            create={() => ({ eyebrow: '', title: '', body: [] })}
+            onChange={(panels) => onChange({ ...block, panels })}
+            render={(panel, update) => (
+              <>
+                <Field
+                  label="Surtitre"
+                  value={panel.eyebrow ?? ''}
+                  maxLength={80}
+                  hint="Petit intitulé vert en capitales : « Les bons moments », « Bon à savoir »."
+                  onChange={(eyebrow) => update({ ...panel, eyebrow })}
+                />
+                <Field
+                  label="Titre"
+                  value={panel.title ?? ''}
+                  maxLength={200}
+                  onChange={(title) => update({ ...panel, title })}
+                />
+                <TextField
+                  label="Texte"
+                  rows={6}
+                  value={richToText(panel.body)}
+                  hint="Une ligne vide sépare deux paragraphes. « - » commence un point de liste."
+                  onChange={(text) => update({ ...panel, body: textToRich(text) })}
+                />
+              </>
+            )}
+          />
+        </>
+      );
+
+    case 'logos':
+      return (
+        <>
+          <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
+          <Field
+            label="Titre"
+            value={block.title ?? ''}
+            maxLength={200}
+            onChange={(title) => onChange({ ...block, title })}
+          />
+          <Field
+            label="Accroche"
+            value={block.lead ?? ''}
+            maxLength={600}
+            onChange={(lead) => onChange({ ...block, lead })}
+          />
+          <Repeatable<{ title: string; text: string }>
+            items={block.groups ?? []}
+            label="la famille de clients"
+            addLabel="Ajouter une famille de clients"
+            create={() => ({ title: '', text: '' })}
+            onChange={(groups) => onChange({ ...block, groups })}
+            render={(group, update) => (
+              <>
+                <Field
+                  label="Titre"
+                  value={group.title}
+                  maxLength={200}
+                  placeholder="Collectivités"
+                  onChange={(title) => update({ ...group, title })}
+                />
+                <TextField
+                  label="Détail"
+                  rows={2}
+                  value={group.text}
+                  maxLength={600}
+                  onChange={(text) => update({ ...group, text })}
+                />
+              </>
+            )}
+          />
+          <Field
+            label="Intitulé au-dessus des logos"
+            value={block.caption ?? ''}
+            maxLength={120}
+            hint="Facultatif. Exemple : « Parcs et collectivités accompagnés »."
+            onChange={(caption) => onChange({ ...block, caption })}
+          />
+          <Field
+            label="Ligne sous les logos"
+            value={block.footnote ?? ''}
+            maxLength={300}
+            hint="Facultatif. Exemple : « Partenaires : Savenergie · Idem · … »."
+            onChange={(footnote) => onChange({ ...block, footnote })}
+          />
+          <Repeatable
+            items={block.logos}
+            label="le logo"
+            addLabel="Ajouter un logo"
+            create={() => ({ url: '', alt: '' })}
+            onChange={(logos) => onChange({ ...block, logos })}
+            render={(logo, update) => (
+              <>
+                <ImageField value={logo} onChange={(image) => update({ ...logo, url: image.url ?? logo.url })} />
+                <Field
+                  label="Nom de l’organisme"
+                  value={logo.alt}
+                  maxLength={200}
+                  hint="Affiché au survol et lu par les lecteurs d’écran."
+                  onChange={(alt) => update({ ...logo, alt })}
+                />
+              </>
+            )}
+          />
+          <Repeatable<{ url?: string; alt: string; href?: string }>
+            items={block.partners ?? []}
+            label="le partenaire"
+            addLabel="Ajouter un partenaire"
+            create={() => ({ alt: '' })}
+            onChange={(partners) => onChange({ ...block, partners })}
+            render={(partner, update) => (
+              <>
+                <Field
+                  label="Nom du partenaire"
+                  value={partner.alt}
+                  maxLength={200}
+                  hint="Affiché tel quel si le partenaire n’a pas de logo."
+                  onChange={(alt) => update({ ...partner, alt })}
+                />
+                <ImageField
+                  value={{ url: partner.url ?? '' }}
+                  onChange={(image) => update({ ...partner, url: image.url || undefined })}
+                />
+                <Field
+                  label="Site du partenaire"
+                  value={partner.href ?? ''}
+                  maxLength={300}
+                  placeholder="https://…"
+                  hint="Facultatif."
+                  onChange={(href) => update({ ...partner, href: href || undefined })}
+                />
+              </>
+            )}
+          />
         </>
       );
 
     case 'steps':
       return (
         <>
+          <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
           <Field
             label="Titre"
             value={block.title ?? ''}
@@ -218,6 +420,13 @@ function BlockFields({
     case 'cards':
       return (
         <>
+          <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            hint="Facultatif. Sans surtitre ni titre, chaque carte devient une grande carte (page Mesures)."
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
           <Field
             label="Titre"
             value={block.title ?? ''}
@@ -269,6 +478,12 @@ function BlockFields({
       return (
         <>
           <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
+          <Field
             label="Titre"
             value={block.title ?? ''}
             maxLength={200}
@@ -305,22 +520,91 @@ function BlockFields({
         </>
       );
 
+    case 'quote':
+      return (
+        <>
+          <TextField
+            label="Citation"
+            rows={3}
+            value={block.text}
+            maxLength={400}
+            hint="Affichée en grand, sur fond sable, au milieu de la page. Un retour à la ligne coupe la phrase à cet endroit. Une seule par page : c’est sa rareté qui la met en valeur."
+            onChange={(text) => onChange({ ...block, text })}
+          />
+          <Field
+            label="Source"
+            value={block.source ?? ''}
+            maxLength={200}
+            hint="Facultative, affichée en petit sous la citation."
+            onChange={(source) => onChange({ ...block, source })}
+          />
+        </>
+      );
+
+    case 'image': {
+      const size = block.size ?? 'medium';
+      return (
+        <>
+          <ImageField
+            value={block}
+            onChange={(image) => onChange({ ...block, ...image })}
+          />
+          <Field
+            label="Description de l’image"
+            value={block.alt}
+            maxLength={300}
+            hint="Obligatoire : lue par les lecteurs d’écran et par les moteurs de recherche. Décrire ce que montre la photo, pas « photo de chantier »."
+            onChange={(alt) => onChange({ ...block, alt })}
+          />
+          <Field
+            label="Légende"
+            value={block.caption ?? ''}
+            maxLength={300}
+            hint="Facultative, affichée sous l’image."
+            onChange={(caption) => onChange({ ...block, caption })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectField
+              label="Taille"
+              value={size}
+              options={[
+                { value: 'small', label: 'Petite (un tiers de la colonne)' },
+                { value: 'medium', label: 'Moyenne (deux tiers)' },
+                { value: 'full', label: 'Pleine largeur' },
+              ]}
+              onChange={(next) => onChange({ ...block, size: next })}
+            />
+            <SelectField
+              label="Position"
+              value={block.align ?? 'center'}
+              options={ALIGN_OPTIONS}
+              // En pleine largeur il ne reste aucune marge à répartir : le
+              // choix serait sans effet, autant le montrer comme tel.
+              disabled={size === 'full'}
+              hint={
+                size === 'full'
+                  ? 'Sans objet en pleine largeur.'
+                  : 'Sur mobile, l’image occupe toujours toute la largeur.'
+              }
+              onChange={(next) => onChange({ ...block, align: next })}
+            />
+          </div>
+        </>
+      );
+    }
+
     case 'callout':
       return (
         <>
-          <label className="block">
-            <span className="text-sm font-medium text-ink-800">Ton</span>
-            <select
-              value={block.tone}
-              onChange={(event) =>
-                onChange({ ...block, tone: event.target.value as 'info' | 'warning' })
-              }
-              className="mt-1 w-full rounded-md border border-ink-200 px-3 py-2 text-sm"
-            >
-              <option value="info">Information (vert)</option>
-              <option value="warning">Avertissement (orange)</option>
-            </select>
-          </label>
+          <SelectField
+            label="Ton"
+            value={block.tone}
+            options={[
+              { value: 'info', label: 'Information (vert)' },
+              { value: 'warning', label: 'Avertissement (orange)' },
+            ]}
+            onChange={(tone) => onChange({ ...block, tone })}
+          />
           <Field
             label="Titre"
             value={block.title ?? ''}
@@ -340,6 +624,13 @@ function BlockFields({
     case 'cta':
       return (
         <>
+          <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            hint="Facultatif : « Notre philosophie »."
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
           <Field
             label="Titre"
             value={block.title}
@@ -392,10 +683,61 @@ function BlockFields({
           </div>
         </>
       );
+
+    case 'links':
+      return (
+        <>
+          <Field
+            label="Titre"
+            value={block.title ?? ''}
+            maxLength={200}
+            onChange={(title) => onChange({ ...block, title })}
+          />
+          <Field
+            label="Accroche"
+            value={block.lead ?? ''}
+            maxLength={600}
+            onChange={(lead) => onChange({ ...block, lead })}
+          />
+          <Repeatable<{ label: string; href: string; text?: string }>
+            items={block.links}
+            label="le lien"
+            addLabel="Ajouter un lien"
+            create={() => ({ label: '', href: '' })}
+            onChange={(links) => onChange({ ...block, links })}
+            render={(link, update) => (
+              <>
+                <Field
+                  label="Libellé"
+                  value={link.label}
+                  maxLength={200}
+                  onChange={(label) => update({ ...link, label })}
+                />
+                <Field
+                  label="Adresse"
+                  value={link.href}
+                  maxLength={300}
+                  placeholder="https://france-renov.gouv.fr/"
+                  hint="Adresse complète du site, elle s’ouvrira dans un nouvel onglet."
+                  onChange={(href) => update({ ...link, href })}
+                />
+                <TextField
+                  label="Description"
+                  rows={2}
+                  value={link.text ?? ''}
+                  maxLength={600}
+                  hint="Facultative."
+                  onChange={(text) => update({ ...link, text })}
+                />
+              </>
+            )}
+          />
+        </>
+      );
   }
 }
 
-/** Liste d'éléments identiques : cartes, étapes, questions. */
+/** Liste d'éléments identiques : cartes, étapes, questions, liens. */
 function Repeatable<T>({
   items,
   label,

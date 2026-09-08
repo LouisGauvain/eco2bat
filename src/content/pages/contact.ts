@@ -1,33 +1,33 @@
 import type { Page } from '../types';
 
 /**
- * Contact — refonte totale.
- * L'ancienne page se limitait à un bloc d'adresse : aucun formulaire, aucune
- * carte, aucun horaire, aucun délai de réponse annoncé, et l'adresse e-mail en
- * clair (donc aspirée par les robots de spam). Le visiteur intéressé n'avait
- * aucun chemin vers la prise de contact.
+ * Contact.
  *
- * Cette page a sa propre route (`src/app/contact/page.tsx`) car elle embarque
- * le formulaire qualifiant. Les blocs ci-dessous décrivent le contenu
- * rédactionnel qui l'entoure.
+ * Le formulaire s'ouvre aussi en widget depuis n'importe quelle page, mais
+ * « contact » reste l'une des adresses les plus demandées et les plus
+ * cherchées dans un menu : elle a donc sa page, indexable et partageable.
+ *
+ * Route dédiée (`src/app/(site)/contact/page.tsx`) parce qu'elle embarque le
+ * formulaire et les coordonnées éditables ; le texte qui l'entoure vient d'ici
+ * et se modifie depuis le back-office comme celui des autres pages.
  */
 export const contact: Page = {
   slug: ['contact'],
   navLabel: 'Contact',
-  title: 'Me contacter',
+  title: 'Parlons de votre projet',
   seo: {
-    title: 'Contact — ECO2BAT, bureau d’études à La Ciotat (13)',
+    title: 'Contact — ECO2BAT, bureau d’études à La Ciotat',
     description:
-      "Décrivez votre projet en deux minutes : type de prestation, bien concerné, commune et échéance. Réponse sous 48 heures ouvrées. Téléphone : 06 15 14 85 08.",
+      "Décrivez votre projet en deux minutes : prestation, bien concerné, commune et échéance. Par téléphone au 06 15 14 85 08. La Ciotat et PACA.",
+    keywords: ['Contact ECO2BAT', "Bureau d'études énergie La Ciotat", 'Devis audit énergétique'],
   },
   hero: {
+    eyebrow: 'Contact',
     lead:
-      "Plus votre demande est précise, plus ma réponse le sera. Le formulaire ci-dessous me permet de vous répondre avec une orientation claire et, le cas échéant, un devis — plutôt qu'avec une demande d'informations complémentaires.",
+      "Plus votre demande est précise, plus notre réponse le sera. Le formulaire ci-dessous nous permet de vous répondre par une orientation claire et, le cas échéant, un devis — plutôt que par une demande d'informations complémentaires.",
   },
   blocks: [],
   status: 'draft',
   customRoute: true,
   sitemapPriority: 0.9,
-  auditNote:
-    'Priorité 1 — Critique. Formulaire qualifiant, téléphone cliquable, carte, délai de réponse annoncé, mention RGPD sous le formulaire.',
 };

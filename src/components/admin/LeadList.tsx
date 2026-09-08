@@ -217,6 +217,13 @@ function LeadCard({
             {lead.email}
           </a>
         </Row>
+        <Row label="Newsletter">
+          {lead.newsletter ? (
+            <span className="font-semibold text-leaf-700">accepte les actualités</span>
+          ) : (
+            <span className="text-ink-400">non</span>
+          )}
+        </Row>
       </dl>
 
       {lead.message && (

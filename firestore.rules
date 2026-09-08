@@ -37,7 +37,8 @@ service cloud.firestore {
         let d = request.resource.data;
         return d.keys().hasOnly([
                  'name', 'email', 'phone', 'prestation', 'propertyType',
-                 'city', 'deadline', 'message', 'status', 'createdAt', 'consentAt'
+                 'city', 'deadline', 'message', 'newsletter', 'status',
+                 'createdAt', 'consentAt'
                ])
                && d.keys().hasAll([
                  'name', 'email', 'prestation', 'propertyType',
@@ -50,11 +51,14 @@ service cloud.firestore {
                    || (d.phone is string && d.phone.size() <= 30))
                && (!('message' in d) || d.message == null
                    || (d.message is string && d.message.size() <= 4000))
+               // Accord newsletter : un booléen, jamais autre chose.
+               && (!('newsletter' in d) || d.newsletter is bool)
                && d.city is string && d.city.size() >= 2 && d.city.size() <= 120
-               && d.prestation in ['audit-energetique', 'audit-vente', 'dpe',
-                                   'infiltrometrie', 'coproprietes', 'formation', 'autre']
+               && d.prestation in ['renovation', 'dpe', 'audit-energetique',
+                                   'mesure-physique', 'controle-rt2012',
+                                   'amo-eau-energie', 'autre']
                && d.propertyType in ['maison', 'appartement', 'immeuble',
-                                     'tertiaire', 'neuf']
+                                     'tertiaire', 'neuf', 'patrimoine']
                && d.deadline in ['urgent', 'mois', 'trimestre', 'renseignement']
                // Une demande entre toujours en « nouveau » : le statut est un
                // outil de suivi interne, pas une donnée fournie par le visiteur.

@@ -21,9 +21,8 @@ import type { Lead, LeadInput, LeadStatus } from './leads';
  * Accès aux demandes de contact depuis le navigateur.
  *
  * Ce que chaque appel a le droit de faire est décidé par `firestore.rules` :
- * le dépôt est public, tout le reste exige d'être authentifié. Une erreur
- * `permission-denied` ici signifie que les règles ont refusé — pas qu'il y a
- * un bug côté client.
+ * le dépôt est public, tout le reste exige d'être authentifié. Une erreur `permission-denied` ici signifie
+ * que les règles ont refusé — pas qu'il y a un bug côté client.
  */
 
 function toIso(value: unknown): string {
@@ -74,6 +73,7 @@ export async function listLeads(): Promise<Lead[]> {
       city: data.city,
       deadline: data.deadline,
       message: data.message ?? '',
+      newsletter: data.newsletter === true,
       status: (data.status ?? 'nouveau') as LeadStatus,
       note: data.note ?? '',
       createdAt: toIso(data.createdAt),

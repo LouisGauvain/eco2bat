@@ -1,92 +1,81 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
-import { legalNav, mainNav } from '@/content/site';
+import { legalNav, mainNav, site as repo } from '@/content/site';
 import { useCompany } from '@/lib/use-content';
-import { container } from './container';
+import { container, eyebrow } from './ui';
 
 export function Footer() {
   const year = new Date().getFullYear();
   const site = useCompany();
 
   return (
-    <footer className="mt-24 border-t border-ink-100 bg-ink-900 text-ink-100">
-      <div className={`${container} grid gap-10 py-14 md:grid-cols-3`}>
-        <div>
-          <p className="font-display text-xl text-white">{site.name}</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-200">
-            {site.tagline}
-          </p>
-          <p className="mt-4 text-sm text-ink-200">
-            {site.owner.name}
-            <br />
-            {site.owner.role}
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-300">
-            Prestations
-          </h2>
-          <ul className="mt-4 space-y-2 text-sm">
-            {mainNav.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="hover:text-leaf-300">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-300">
-            Contact
-          </h2>
-          {/* Adresse en microdonnées : reprise telle quelle par les données
-              structurées de la page d'accueil. */}
-          <address className="mt-4 space-y-2 text-sm not-italic">
-            <p>
-              {site.address.street}
-              <br />
-              {site.address.postalCode} {site.address.city}
+    <footer className="mt-20 border-t border-edge bg-paper">
+      <div className={`${container} pb-7 pt-14`}>
+        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <Image src="/logo.svg" alt={site.name} width={110} height={22} className="h-[22px] w-auto" />
+            <p className="mt-3.5 text-[13.5px] font-bold text-ink-900">{repo.headline}</p>
+            <p className="mt-1 max-w-[320px] text-[13.5px] italic leading-relaxed text-ink-600">
+              «&nbsp;{repo.slogan}&nbsp;»
             </p>
-            <p>
-              <a href={`tel:${site.contact.phoneE164}`} className="hover:text-leaf-300">
+            <p className="mt-3.5 max-w-[320px] text-[13.5px] leading-relaxed text-ink-600">
+              {repo.meaning}. Conseils en économie d&apos;eau et d&apos;énergie depuis {repo.since} —
+              missions volontaires ou réglementaires.
+            </p>
+          </div>
+
+          <div>
+            <p className={`${eyebrow} mb-3.5`}>Missions</p>
+            <ul className="flex flex-col gap-2 text-[13px] font-semibold text-ink-600">
+              {mainNav.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="hover:text-leaf-700">
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className={`${eyebrow} mb-3.5`}>Contact</p>
+            <address className="flex flex-col gap-2 text-[13px] not-italic text-ink-600">
+              <span className="font-bold text-ink-900">{site.owner.name}</span>
+              <a href={`tel:${site.contact.phoneE164}`} className="tabular-nums hover:text-leaf-700">
                 {site.contact.phone}
               </a>
-            </p>
-            <p>
-              <a href={`mailto:${site.contact.email}`} className="hover:text-leaf-300">
+              <a href={`mailto:${site.contact.email}`} className="hover:text-leaf-700">
                 {site.contact.email}
               </a>
-            </p>
-          </address>
-          <Link
-            href="/contact/"
-            className="mt-5 inline-block rounded-md bg-leaf-600 px-4 py-2 text-sm font-semibold text-white hover:bg-leaf-700"
-          >
-            Demander un devis
-          </Link>
+              <span>
+                {site.address.street}
+                <br />
+                {site.address.postalCode} {site.address.city}
+              </span>
+            </address>
+            <Link
+              href="/contact/"
+              className="mt-3.5 inline-block text-[13px] font-bold text-ink-900 underline decoration-leaf-400 underline-offset-4 hover:text-leaf-700"
+            >
+              Nous écrire
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <div className="border-t border-ink-800">
-        <div className={`${container} flex flex-col gap-3 py-5 text-xs text-ink-300 sm:flex-row sm:items-center sm:justify-between`}>
-          <p>
-            © {year} {site.legalName} — Zone d’intervention :{' '}
-            {site.serviceArea.join(', ')}
-          </p>
-          <ul className="flex gap-4">
+        <div className="mt-11 flex flex-wrap justify-between gap-x-5 gap-y-2 border-t border-edge pt-5 text-[11.5px] text-ink-600">
+          <span>
+            © {year} {site.legalName} — {site.address.city}
+          </span>
+          <span className="flex flex-wrap gap-x-4 gap-y-1">
             {legalNav.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="hover:text-leaf-300">
-                  {item.label}
-                </Link>
-              </li>
+              <Link key={item.href} href={item.href} className="hover:text-leaf-700">
+                {item.label}
+              </Link>
             ))}
-          </ul>
+          </span>
         </div>
       </div>
     </footer>
