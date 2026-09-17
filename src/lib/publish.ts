@@ -18,7 +18,18 @@ export interface PublishRun {
   /** `success`, `failure`, `cancelled`… une fois terminé. */
   conclusion: string | null;
   createdAt: number;
+  /** Dernier changement d'état : la fin, une fois terminé. */
+  updatedAt?: number;
   url: string;
+  /** Étapes du workflow, dans l'ordre (absentes avant déploiement de la fonction). */
+  steps?: PublishStep[];
+}
+
+export interface PublishStep {
+  /** Nom de l'étape dans `publish.yml`. */
+  name: string;
+  status: string;
+  conclusion: string | null;
 }
 
 export async function publishSite(): Promise<void> {

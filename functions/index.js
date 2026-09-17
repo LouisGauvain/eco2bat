@@ -72,15 +72,26 @@ export const publishStatus = onCall(options, async (request) => {
   const response = await github(`/actions/workflows/${WORKFLOW}/runs?per_page=1&branch=${BRANCH}`);
   const { workflow_runs: runs = [] } = await response.json();
   const run = runs[0];
+  if (!run) return { run: null };
+
+  // Étapes du job, pour afficher l'avancement dans le back-office. Tant que
+  // GitHub n'a pas attribué de serveur, la liste est vide.
+  const jobsResponse = await github(`/actions/runs/${run.id}/jobs`);
+  const { jobs = [] } = await jobsResponse.json();
+  const steps = (jobs[0]?.steps ?? []).map((step) => ({
+    name: step.name,
+    status: step.status,
+    conclusion: step.conclusion,
+  }));
 
   return {
-    run: run
-      ? {
-          status: run.status,
-          conclusion: run.conclusion,
-          createdAt: Date.parse(run.created_at),
-          url: run.html_url,
-        }
-      : null,
+    run: {
+      status: run.status,
+      conclusion: run.conclusion,
+      createdAt: Date.parse(run.created_at),
+      updatedAt: Date.parse(run.updated_at),
+      url: run.html_url,
+      steps,
+    },
   };
 });

@@ -36,15 +36,20 @@ jobs:
       NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}
       NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
 
+    # Les noms des étapes sont lus par le back-office pour afficher
+    # l'avancement (`STEPS` dans `PublishControl.tsx`) : les garder alignés.
     steps:
-      - uses: actions/checkout@v4
+      - name: Récupération du code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Installation de Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - name: Installation des dépendances
+        run: npm ci
 
       - name: Build (lecture des pages dans Firestore)
         run: npm run build
