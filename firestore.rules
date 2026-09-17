@@ -76,14 +76,37 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // Surcharge du contenu des pages, éditée depuis le back-office. Lue par
-    // tous les visiteurs (elle remplace le texte affiché), écrite par le seul
-    // gérant. La forme du document est validée côté client par un schéma : un
-    // document invalide n'est pas appliqué, la page du dépôt reprend la main.
+    // Pages du site, éditées depuis le back-office. Lues par le build de
+    // publication, qui n'est pas authentifié : la lecture est donc publique
+    // (rien de confidentiel, brouillons compris). La forme complète est validée
+    // par `pageDocSchema`, à l'enregistrement puis au build, qui s'arrête sur
+    // un document invalide ; les règles vérifient la structure essentielle.
     match /pages/{pageId} {
       allow read: if true;
-      allow create, update: if isSignedIn() && request.resource.data.size() <= 20;
-      // Suppression = retour au texte du dépôt.
+      allow create, update: if isSignedIn() && isValidPage(request.resource.data);
+      allow delete: if isSignedIn();
+
+      function isValidPage(d) {
+        return d.size() <= 25
+               && d.slug is list && d.slug.size() <= 4
+               && d.status in ['draft', 'published']
+               && d.order is number
+               && d.navLabel is string && d.title is string
+               && d.seo is map && d.blocks is list;
+      }
+    }
+
+    // Redirections 301 posées quand une page en ligne change d'adresse ou est
+    // supprimée. Lues par le script de publication, qui les ajoute à la
+    // configuration de Firebase Hosting.
+    match /redirects/{redirectId} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+                            && request.resource.data.keys().hasOnly(['from', 'to', 'createdAt'])
+                            && request.resource.data.from is string
+                            && request.resource.data.from.matches('^/[a-z0-9/-]*$')
+                            && request.resource.data.to is string
+                            && request.resource.data.to.matches('^/[a-z0-9/-]*$');
       allow delete: if isSignedIn();
     }
 

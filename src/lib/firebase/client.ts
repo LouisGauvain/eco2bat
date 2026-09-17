@@ -2,6 +2,7 @@
 
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
 import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
+import { connectFunctionsEmulator, getFunctions, type Functions } from 'firebase/functions';
 import {
   connectFirestoreEmulator,
   getFirestore,
@@ -13,7 +14,8 @@ import {
  *
  * Le site est statique : il n'existe aucun serveur applicatif. Ce sont les
  * règles Firestore (`firestore.rules`) qui décident de ce que chaque visiteur
- * peut lire et écrire.
+ * peut lire et écrire. La seule exception est la publication, qui passe par
+ * une fonction Cloud.
  */
 const options: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -34,6 +36,7 @@ function app() {
 
 let authInstance: Auth | undefined;
 let dbInstance: Firestore | undefined;
+let functionsInstance: Functions | undefined;
 
 export function getClientAuth(): Auth {
   if (!authInstance) {
@@ -55,9 +58,23 @@ export function getDb(): Firestore {
   return dbInstance;
 }
 
+/**
+ * Fonctions Cloud — seule la publication du site en utilise : déclencher un
+ * build demande un jeton GitHub, qui ne peut pas vivre dans le navigateur.
+ * Même région que dans `functions/index.js`.
+ */
+export function getClientFunctions(): Functions {
+  if (!functionsInstance) {
+    functionsInstance = getFunctions(app(), 'europe-west1');
+    if (useEmulators) connectFunctionsEmulator(functionsInstance, '127.0.0.1', 5001);
+  }
+  return functionsInstance;
+}
+
 /** Noms de collections centralisés — évite les fautes de frappe silencieuses. */
 export const collections = {
   leads: 'leads',
   settings: 'settings',
   pages: 'pages',
+  redirects: 'redirects',
 } as const;

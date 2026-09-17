@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from './PageEditor';
 import { container } from '@/components/layout/ui';
-import { pages } from '@/content';
-import { pathOf } from '@/content/types';
+import { pathOf } from '@/content';
+import { listPages, type PageEntry } from '@/lib/content-store';
 import { useIsAdmin } from '@/lib/use-content';
 
 /**
@@ -18,6 +18,9 @@ import { useIsAdmin } from '@/lib/use-content';
  * corrige un texte en le voyant dans son contexte, plutôt que dans un
  * formulaire séparé du rendu.
  *
+ * Le site en ligne étant statique, ce qu'on enregistre ici ne s'y voit qu'après
+ * publication ; en attendant, l'aperçu montre la version enregistrée.
+ *
  * Rien n'est affiché aux visiteurs. Cacher ces outils reste du confort : c'est
  * `firestore.rules` qui empêche réellement quiconque d'écrire.
  */
@@ -26,6 +29,16 @@ export function EditOverlay() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const bannerRef = useRef<HTMLDivElement>(null);
+  const [pages, setPages] = useState<PageEntry[]>([]);
+
+  // Les pages ne sont lues que pour le gérant : un visiteur ne déclenche
+  // aucune requête.
+  useEffect(() => {
+    if (!isAdmin) return;
+    listPages()
+      .then((list) => setPages(list.pages))
+      .catch((error) => console.error('[contenu] lecture impossible', error));
+  }, [isAdmin]);
 
   const page = pages.find((candidate) => pathOf(candidate) === normalize(pathname));
 
@@ -86,7 +99,9 @@ export function EditOverlay() {
               {open ? 'Fermer l’édition' : 'Modifier cette page'}
             </button>
           ) : (
-            <span className="text-ink-400">Cette page ne s’édite pas en ligne.</span>
+            <span className="text-ink-400">
+              {pages.length === 0 ? 'Pages à importer depuis le back-office.' : 'Cette page ne s’édite pas en ligne.'}
+            </span>
           )}
           <Link href="/admin/" className="ml-auto text-ink-300 underline underline-offset-4 hover:text-white">
             Back-office
@@ -111,7 +126,7 @@ export function EditOverlay() {
           </header>
 
           <div className="flex-1 overflow-y-auto px-5 pt-5">
-            <PageEditor page={page} compact />
+            <PageEditor pageId={page.id} compact />
           </div>
         </aside>
       )}

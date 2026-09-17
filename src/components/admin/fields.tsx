@@ -119,6 +119,33 @@ export function SelectField<T extends string>({
   );
 }
 
+export function CheckboxField({
+  label,
+  checked,
+  onChange,
+  hint,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  hint?: string;
+}) {
+  return (
+    <label className="flex items-start gap-2.5">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 h-4 w-4 accent-leaf-600"
+      />
+      <span>
+        <span className="block text-sm font-medium text-ink-800">{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-ink-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 /**
  * Compteur de caractères. Sur un titre SEO ou une meta-description, dépasser
  * la longueur utile fait tronquer le texte dans les résultats de recherche :

@@ -7,23 +7,20 @@ import { ContentImage } from './ContentImage';
 import type { Page } from '@/content/types';
 import { Backdrop } from '@/components/layout/Backdrop';
 import { btnGhostDark, btnLight, btnPrimary, btnSecondary, container, eyebrow, label } from '@/components/layout/ui';
-import { usePageContent } from '@/lib/use-content';
 
 /**
- * Gabarit commun à toutes les pages du site public.
+ * Gabarit commun à toutes les pages du site public, et à l'aperçu du
+ * back-office.
  *
- * Le contenu reçu est celui du dépôt, rendu au build : c'est lui qui part dans
- * le HTML statique. `usePageContent` le remplace après affichage si le
- * back-office a enregistré une version modifiée.
+ * Sur le site, le contenu reçu est celui de la dernière publication, rendu au
+ * build : c'est lui qui part dans le HTML statique.
  *
  * Deux heros, repris des maquettes : l'accueil ouvre sur une bande vert
  * profond pleine largeur, titre à gauche et citation négaWatt à droite ; les
  * pages de mission sont alignées à gauche sur le papier, avec l'illustration
  * éventuelle à droite du titre.
  */
-export function PageView({ page: source, children }: { page: Page; children?: React.ReactNode }) {
-  const page = usePageContent(source);
-
+export function PageView({ page, children }: { page: Page; children?: React.ReactNode }) {
   if (page.slug.length === 0) {
     return (
       <article>

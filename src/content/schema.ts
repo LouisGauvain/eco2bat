@@ -5,12 +5,10 @@ import type { Block, Panel, Rich } from './types';
 /**
  * Validation du contenu éditable depuis le back-office.
  *
- * Les pages restent décrites dans `src/content/pages/*.ts` : c'est cette
- * version, versionnée et rendue au build, qui part dans le HTML statique et
- * donc dans l'index de Google. Un document Firestore ne fait que la surcharger
- * à l'affichage. Ces schémas sont le garde-fou de cette surcharge : un
- * document mal formé est ignoré, et la page du dépôt reprend la main plutôt
- * que de s'afficher à trous.
+ * Le même schéma sert deux fois : à l'enregistrement dans le back-office, pour
+ * refuser un contenu incomplet avant qu'il n'atteigne la base, et au build,
+ * qui s'arrête sur un document invalide plutôt que de mettre en ligne une page
+ * à trous.
  */
 
 const richSchema: z.ZodType<Rich> = z.union([
@@ -178,58 +176,92 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   }),
 ]);
 
-/**
- * Champs d'une page modifiables en ligne. La structure (`slug`, `customRoute`)
- * n'en fait pas partie : changer une URL depuis le back-office casserait les
- * liens entrants sans possibilité de poser la redirection correspondante.
- */
-export const pageContentSchema = z.object({
-  navLabel: z.string().trim().min(1).max(60),
-  title: z.string().trim().min(1).max(200),
-  seo: z.object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().min(1).max(400),
-    keywords: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
-  }),
-  hero: z
-    .object({
-      eyebrow: eyebrowSchema,
-      lead: z.string().trim().max(1200),
-      body: z.array(z.string().trim().min(1).max(1200)).optional(),
-      primary: linkSchema.optional(),
-      secondary: linkSchema.optional(),
-      tagline: z.string().trim().max(120).optional(),
-      image: z
-        .object({
-          url: imageUrlSchema,
-          alt: z.string().trim().min(1).max(300),
-          caption: z.string().trim().max(300).optional(),
-          width: z.number().int().positive().optional(),
-          height: z.number().int().positive().optional(),
-        })
-        .optional(),
-      quote: z
-        .object({
-          text: z.string().trim().min(1).max(300),
-          source: z.string().trim().max(120).optional(),
-        })
-        .optional(),
-      stats: z
-        .array(
-          z.object({
-            value: z.string().trim().min(1).max(20),
-            label: z.string().trim().min(1).max(80),
-          }),
-        )
-        .max(4)
-        .optional(),
-    })
-    .nullable()
-    .optional(),
-  blocks: z.array(blockSchema),
-});
+/** Segment d'URL : minuscules, chiffres et tirets, sans accent ni espace. */
+export const slugSegmentSchema = z
+  .string()
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Adresse invalide : minuscules, chiffres et tirets uniquement (ex. audit-energetique).',
+  );
 
-export type PageContent = z.infer<typeof pageContentSchema>;
+/**
+ * Document d'une page dans la collection `pages`. C'est ce document que le
+ * build transforme en HTML : il porte donc le texte, mais aussi l'adresse, le
+ * statut, la place dans le menu et le référencement.
+ */
+export const pageDocSchema = z
+  .object({
+    slug: z.array(slugSegmentSchema).max(4),
+    status: z.enum(['draft', 'published']),
+    noindex: z.boolean().optional(),
+    showInNav: z.boolean().optional(),
+    order: z.number(),
+    customRoute: z.boolean().optional(),
+    sitemapPriority: z.number().min(0).max(1).optional(),
+    auditNote: z.string().max(600).optional(),
+    navLabel: z.string().trim().min(1).max(60),
+    navTitle: z.string().trim().max(120).optional(),
+    title: z.string().trim().min(1).max(200),
+    seo: z.object({
+      // Vides tolérés sur un brouillon : une page qu'on vient de créer n'a pas
+      // encore de description. La publication, elle, les exige (voir plus bas).
+      title: z.string().trim().max(120),
+      description: z.string().trim().max(400),
+      keywords: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
+      image: imageUrlSchema.optional(),
+    }),
+    hero: z
+      .object({
+        eyebrow: eyebrowSchema,
+        lead: z.string().trim().max(1200),
+        body: z.array(z.string().trim().min(1).max(1200)).optional(),
+        primary: linkSchema.optional(),
+        secondary: linkSchema.optional(),
+        tagline: z.string().trim().max(120).optional(),
+        image: z
+          .object({
+            url: imageUrlSchema,
+            alt: z.string().trim().min(1).max(300),
+            caption: z.string().trim().max(300).optional(),
+            width: z.number().int().positive().optional(),
+            height: z.number().int().positive().optional(),
+          })
+          .optional(),
+        quote: z
+          .object({
+            text: z.string().trim().min(1).max(300),
+            source: z.string().trim().max(120).optional(),
+          })
+          .optional(),
+        stats: z
+          .array(
+            z.object({
+              value: z.string().trim().min(1).max(20),
+              label: z.string().trim().min(1).max(80),
+            }),
+          )
+          .max(4)
+          .optional(),
+      })
+      .nullable()
+      .optional(),
+    blocks: z.array(blockSchema),
+  })
+  .superRefine((page, ctx) => {
+    if (page.status !== 'published') return;
+    if (!page.seo.title) {
+      ctx.addIssue({ code: 'custom', path: ['seo', 'title'], message: 'Titre Google obligatoire pour publier la page.' });
+    }
+    if (!page.seo.description) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['seo', 'description'],
+        message: 'Description Google obligatoire pour publier la page.',
+      });
+    }
+  });
+
+export type PageDoc = z.infer<typeof pageDocSchema>;
 
 /**
  * Informations d'entreprise (NAP). Le téléphone, l'adresse et l'e-mail sont

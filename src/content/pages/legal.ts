@@ -1,4 +1,4 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 import { site } from '../site';
 
 /**
@@ -14,7 +14,7 @@ import { site } from '../site';
 
 const address = `${site.address.street}, ${site.address.postalCode} ${site.address.city}`;
 
-export const mentionsLegales: Page = {
+export const mentionsLegales: SeedPage = {
   slug: ['mentions-legales'],
   navLabel: 'Mentions légales',
   title: 'Mentions légales',
@@ -78,13 +78,14 @@ export const mentionsLegales: Page = {
       ],
     },
   ],
-  status: 'todo',
+  status: 'published',
+  noindex: true,
   sitemapPriority: 0.1,
   auditNote:
     'Priorité 1 — Critique. Obligation LCEN non remplie sur l’ancien site. Bloquant pour la mise en ligne.',
 };
 
-export const politiqueConfidentialite: Page = {
+export const politiqueConfidentialite: SeedPage = {
   slug: ['politique-de-confidentialite'],
   navLabel: 'Politique de confidentialité',
   title: 'Politique de confidentialité',
@@ -161,7 +162,8 @@ export const politiqueConfidentialite: Page = {
       ],
     },
   ],
-  status: 'todo',
+  status: 'published',
+  noindex: true,
   sitemapPriority: 0.1,
   auditNote:
     'Priorité 1 — Critique. Obligation RGPD non remplie sur l’ancien site. Bloquant pour la mise en ligne.',

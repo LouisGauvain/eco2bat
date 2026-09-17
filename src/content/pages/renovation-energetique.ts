@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** Rénovation énergétique — maquette « Renovation » du dossier Refonte Eco2bat. */
-export const renovationEnergetique: Page = {
+export const renovationEnergetique: SeedPage = {
   slug: ['renovation-energetique'],
   navLabel: 'Rénovation',
   title: 'Rénovation énergétique',
@@ -136,6 +136,6 @@ export const renovationEnergetique: Page = {
       primary: { label: 'Nous contacter', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.9,
 };

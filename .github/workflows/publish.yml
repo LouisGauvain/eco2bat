@@ -1,0 +1,61 @@
+# Publication du site, déclenchée par le bouton « Publier » du back-office
+# (fonction Cloud `publishSite`) ou à la main depuis l'onglet Actions.
+#
+# Le build lit les pages dans Firestore : c'est ici que le contenu du
+# back-office devient le HTML statique servi par Firebase Hosting.
+#
+# Secrets du dépôt à renseigner (Settings › Secrets and variables › Actions) :
+#   NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+#   NEXT_PUBLIC_FIREBASE_PROJECT_ID, NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+#   NEXT_PUBLIC_FIREBASE_APP_ID, NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+#   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET, NEXT_PUBLIC_SITE_URL
+#   FIREBASE_SERVICE_ACCOUNT : clé JSON d'un compte de service avec le rôle
+#   « Administrateur Firebase Hosting ».
+name: Publier le site
+
+on:
+  workflow_dispatch:
+
+# Deux clics rapprochés ne lancent pas deux déploiements en parallèle : le
+# second attend le premier, et publie donc bien le contenu le plus récent.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build (lecture des pages dans Firestore)
+        run: npm run build
+
+      - name: Redirections du back-office
+        run: node scripts/sync-redirects.mjs
+
+      - name: Déploiement sur Firebase Hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
+          npx --yes firebase-tools@14 deploy --only hosting --project "$NEXT_PUBLIC_FIREBASE_PROJECT_ID" --non-interactive

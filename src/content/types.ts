@@ -1,15 +1,14 @@
 /**
  * Modèle de contenu du site public.
  *
- * Les pages sont versionnées dans le dépôt (et non en base) : le référencement
- * est l'enjeu central de la refonte, et c'est cette version-là qui part dans le
- * HTML statique, donc dans l'index des moteurs.
+ * Les pages vivent dans la collection Firestore `pages`, écrite depuis le
+ * back-office. Le build les lit (`src/lib/pages-source.ts`) et en produit le
+ * HTML statique : ce qui est dans l'index des moteurs est donc toujours la
+ * version publiée, jamais une surcharge appliquée dans le navigateur.
  *
- * Le back-office peut réécrire le texte d'une page (voir
- * `src/lib/content-store.ts`) : la surcharge s'affiche aussitôt pour les
- * visiteurs, et entre dans l'index au déploiement suivant. La structure —
- * slug, existence d'une page, présence dans le menu — reste décrite ici :
- * changer une URL demande d'en poser la redirection.
+ * Les fichiers de `src/content/pages/` ne sont plus que la version d'origine :
+ * ils servent à remplir la collection au premier import, et de repli tant
+ * qu'elle est vide.
  */
 
 /** Fragment de texte long : paragraphe, sous-titre ou liste. */
@@ -161,17 +160,25 @@ export type Block =
     };
 
 /**
- * Avancement rédactionnel, repris de l'audit de contenu.
- * `todo` signale une page dont le texte reste à écrire ou à valider avec le
- * client : elle est alors exclue du sitemap et marquée `noindex`.
+ * `draft` : la page existe dans le back-office mais n'est pas construite — ni
+ * URL, ni menu, ni sitemap. `published` : elle part en ligne à la prochaine
+ * publication.
  */
-export type PageStatus = 'todo' | 'draft' | 'ready';
+export type PageStatus = 'draft' | 'published';
 
 export interface Page {
+  /** Identifiant du document Firestore — stable, contrairement au slug. */
+  id: string;
   /** Segments d'URL, sans slash. `[]` pour l'accueil. */
   slug: string[];
-  /** Libellé court utilisé dans les menus et le fil d'Ariane. */
+  /** Libellé court utilisé dans la barre de menu et le fil d'Ariane. */
   navLabel: string;
+  /** Intitulé complet, repris dans le pied de page et la 404. */
+  navTitle?: string;
+  /** Présence dans le menu principal. */
+  showInNav?: boolean;
+  /** Rang dans le menu et dans la liste du back-office. */
+  order: number;
   /** Titre H1 de la page. */
   title: string;
   seo: {
@@ -186,6 +193,8 @@ export interface Page {
      * description ou le texte de la page. Une dizaine au maximum.
      */
     keywords?: string[];
+    /** Visuel de partage (réseaux, messageries). À défaut, celui du site. */
+    image?: string;
   };
   hero?: {
     /** Surtitre au-dessus du H1 : « Nos missions », « Contact ». */
@@ -230,10 +239,15 @@ export interface Page {
   blocks: Block[];
   status: PageStatus;
   /**
+   * Page publiée mais tenue hors de l'index : exclue du sitemap et marquée
+   * `noindex` (texte encore à valider, pages légales).
+   */
+  noindex?: boolean;
+  /**
    * `true` quand la page a sa propre route dans `src/app` (parce qu'elle
    * embarque de l'interactif, comme le formulaire de contact). Elle reste
    * décrite ici pour le menu, le sitemap et ses métadonnées, mais n'est pas
-   * rendue par la route générique.
+   * rendue par la route générique — son adresse ne peut donc pas changer.
    */
   customRoute?: boolean;
   /** Priorité relative dans le sitemap (0 à 1). */
@@ -241,6 +255,12 @@ export interface Page {
   /** Note de reprise issue de l'audit — pour l'équipe, jamais affichée. */
   auditNote?: string;
 }
+
+/**
+ * Page d'origine, écrite dans le dépôt. Identifiant, rang et place dans le menu
+ * sont attribués à l'import (`seedPages`).
+ */
+export type SeedPage = Omit<Page, 'id' | 'order' | 'navTitle' | 'showInNav'>;
 
 /** Chemin absolu d'une page, forme canonique avec slash final. */
 export function pathOf(page: Pick<Page, 'slug'>): string {

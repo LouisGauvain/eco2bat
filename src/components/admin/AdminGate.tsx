@@ -4,6 +4,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } fr
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { PublishControl } from './PublishControl';
 import { container } from '@/components/layout/ui';
 import { getClientAuth } from '@/lib/firebase/client';
 
@@ -64,6 +65,7 @@ export function AdminGate({
           </nav>
 
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <PublishControl />
             <Link href="/" className="text-ink-500 hover:text-ink-800">
               Voir le site
             </Link>

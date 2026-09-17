@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** AMO eau & énergie — maquette « AMO » du dossier Refonte Eco2bat. */
-export const amoEauEnergie: Page = {
+export const amoEauEnergie: SeedPage = {
   slug: ['amo-economies-eau-energie'],
   navLabel: 'AMO eau & énergie',
   title: "AMO économies d'eau et d'énergie",
@@ -105,6 +105,6 @@ export const amoEauEnergie: Page = {
       primary: { label: 'Parler de votre patrimoine', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.8,
 };

@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 import { site } from '../site';
 
-export const home: Page = {
+export const home: SeedPage = {
   slug: [],
   navLabel: 'Accueil',
   title: 'ECOnomie et ECOlogie dans le BATiment',
@@ -155,6 +155,6 @@ export const home: Page = {
       primary: { label: 'Nous contacter', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 1,
 };

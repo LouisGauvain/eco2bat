@@ -12,10 +12,9 @@ export default function ContentPage() {
   return (
     <AdminGate title="Contenu des pages">
       <p className="max-w-2xl text-sm leading-relaxed text-ink-600">
-        Le texte modifié ici s’applique tout de suite sur le site public. Il
-        n’entre en revanche dans l’index de Google qu’au prochain déploiement :
-        pour une correction qui compte pour le référencement (titre, description),
-        prévenez votre développeur afin qu’il republie le site.
+        Créez, modifiez et organisez les pages du site. Ce que vous enregistrez
+        est visible dans l’aperçu ; le site en ligne est mis à jour quand vous
+        cliquez sur « Publier », en haut à droite (deux à trois minutes).
       </p>
       <div className="mt-6">
         <ContentManager />

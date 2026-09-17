@@ -76,9 +76,11 @@ export const site = {
 } as const;
 
 /**
- * Menu principal, dans l'ordre du document de cadrage du client. `label` est
- * le mot court de la barre de navigation, `title` l'intitulé complet repris
- * dans le pied de page et la page 404.
+ * Menu d'origine, dans l'ordre du document de cadrage du client. Il ne sert
+ * plus qu'à l'import des pages (`seedPages`) : le menu affiché est construit à
+ * partir des pages du back-office (« Afficher dans le menu »). `label` est le
+ * mot court de la barre de navigation, `title` l'intitulé complet repris dans
+ * le pied de page et la page 404.
  */
 export const mainNav: { label: string; title: string; href: string }[] = [
   { label: 'Rénovation', title: 'Rénovation énergétique', href: '/renovation-energetique/' },

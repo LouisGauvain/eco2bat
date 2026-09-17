@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-import { mainNav } from '@/content/site';
+import type { NavItem } from '@/content';
 import { btnHeader, container } from './ui';
 
 /**
@@ -14,7 +14,7 @@ import { btnHeader, container } from './ui';
  * pointe vers `#contact` : le widget de contact intercepte ce lien et s'ouvre
  * par-dessus la page.
  */
-export function Header() {
+export function Header({ nav }: { nav: NavItem[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -39,7 +39,7 @@ export function Header() {
           </Link>
 
           <nav aria-label="Navigation principale" className="hidden items-center gap-5 lg:flex">
-            {mainNav.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -73,7 +73,7 @@ export function Header() {
             className="border-t border-edge bg-white lg:hidden"
           >
             <ul className={`${container} py-2`}>
-              {mainNav.map((item) => (
+              {nav.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}

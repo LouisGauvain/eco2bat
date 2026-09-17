@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
 
-import { indexablePages, pathOf } from '@/content';
+import { isIndexable, pathOf } from '@/content';
 import { siteUrl } from '@/content/site';
+import { publishedPages } from '@/lib/pages-source';
 
 /**
  * `force-static` est requis par `output: 'export'` : le fichier est généré une
@@ -13,13 +14,13 @@ export const dynamic = 'force-static';
 /**
  * Sitemap.
  * L'ancien site n'exposait aucun sitemap exploitable. Celui-ci se régénère à
- * chaque build à partir du registre de contenu, et exclut automatiquement les
- * pages encore en rédaction.
+ * chaque publication à partir des pages du back-office, et exclut les
+ * brouillons et les pages marquées « hors index ».
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
-  return indexablePages().map((page) => ({
+  return (await publishedPages()).filter(isIndexable).map((page) => ({
     url: `${siteUrl}${pathOf(page)}`,
     lastModified,
     changeFrequency: 'monthly',

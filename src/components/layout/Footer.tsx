@@ -3,11 +3,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { legalNav, mainNav, site as repo } from '@/content/site';
+import type { NavItem } from '@/content';
+import { legalNav, site as repo } from '@/content/site';
 import { useCompany } from '@/lib/use-content';
 import { container, eyebrow } from './ui';
 
-export function Footer() {
+export function Footer({ nav }: { nav: NavItem[] }) {
   const year = new Date().getFullYear();
   const site = useCompany();
 
@@ -30,7 +31,7 @@ export function Footer() {
           <div>
             <p className={`${eyebrow} mb-3.5`}>Missions</p>
             <ul className="flex flex-col gap-2 text-[13px] font-semibold text-ink-600">
-              {mainNav.map((item) => (
+              {nav.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className="hover:text-leaf-700">
                     {item.title}

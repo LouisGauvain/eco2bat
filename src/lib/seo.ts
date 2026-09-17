@@ -29,6 +29,11 @@ const ogImage = {
 export function metadataFor(page: Page): Metadata {
   const url = `${siteUrl}${pathOf(page)}`;
   const indexable = isIndexable(page);
+  // Visuel propre à la page s'il y en a un, recadré au format attendu par les
+  // réseaux ; sinon celui du site.
+  const image = page.seo.image
+    ? { url: shareImageUrl(page.seo.image), width: 1200, height: 630, alt: page.title }
+    : ogImage;
 
   return {
     title: page.seo.title,
@@ -43,15 +48,24 @@ export function metadataFor(page: Page): Metadata {
       url,
       title: page.seo.title,
       description: page.seo.description,
-      images: [ogImage],
+      images: [image],
     },
     twitter: {
       card: 'summary_large_image',
       title: page.seo.title,
       description: page.seo.description,
-      images: [ogImage.url],
+      images: [image.url],
     },
   };
+}
+
+/** Adresse absolue en 1200×630 ; un fichier de `public/` est servi tel quel. */
+function shareImageUrl(url: string): string {
+  if (url.startsWith('/')) return `${siteUrl}${url}`;
+  const marker = '/image/upload/';
+  const at = url.indexOf(marker);
+  if (!url.startsWith('https://res.cloudinary.com/') || at === -1) return url;
+  return `${url.slice(0, at + marker.length)}c_fill,g_auto,w_1200,h_630,f_jpg,q_auto/${url.slice(at + marker.length)}`;
 }
 
 /**

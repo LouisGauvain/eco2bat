@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** Mesure physique — maquette « Mesures » du dossier Refonte Eco2bat. */
-export const mesurePhysique: Page = {
+export const mesurePhysique: SeedPage = {
   slug: ['mesure-physique-du-batiment'],
   navLabel: 'Mesures',
   title: 'Mesure physique du bâtiment',
@@ -72,6 +72,6 @@ export const mesurePhysique: Page = {
       primary: { label: 'Nous contacter', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.8,
 };

@@ -1,163 +1,228 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { BlockList } from './BlockEditor';
-import { Field, TextField } from './fields';
+import { CheckboxField, Field, SelectField, TextField } from './fields';
 import { ImageField } from './ImageField';
+import { SeoPanel } from './SeoPanel';
 import { Toast } from './Toast';
-import { pageContentSchema, type PageContent } from '@/content/schema';
-import type { Block, Page } from '@/content/types';
-import {
-  getPageContent,
-  pageContentOf,
-  resetPageContent,
-  savePageContent,
-} from '@/lib/content-store';
+import { docFromPage, pathOf, type Page } from '@/content';
+import { pageDocSchema } from '@/content/schema';
+import type { Block, PageStatus } from '@/content/types';
+import { ContentError, getPage, savePage } from '@/lib/content-store';
 
 /**
- * Éditeur d'une page, partagé par le back-office et l'édition en direct depuis
- * le site public — pour que les deux chemins produisent exactement le même
- * contenu et les mêmes validations.
+ * Éditeur d'une page, partagé par le back-office et l'édition depuis le site
+ * public — pour que les deux chemins produisent exactement le même contenu et
+ * les mêmes validations.
  *
- * L'édition part toujours de la version du dépôt : tant que rien n'est
- * enregistré, la page continue d'être servie telle qu'elle a été déployée.
+ * Enregistrer écrit dans Firestore ; le site en ligne ne change qu'à la
+ * publication. Entre les deux, l'aperçu montre la version enregistrée.
  */
 
-type Status = 'loading' | 'idle' | 'saving' | 'error';
+type Status = 'loading' | 'missing' | 'idle' | 'saving' | 'error';
+
+const STATUS_OPTIONS: { value: PageStatus; label: string }[] = [
+  { value: 'draft', label: 'Brouillon — pas en ligne' },
+  { value: 'published', label: 'Publiée — en ligne à la prochaine publication' },
+];
 
 export function PageEditor({
-  page,
+  pageId,
   compact = false,
 }: {
-  page: Page;
-  /** Mise en page resserrée pour le panneau d'édition en direct. */
+  pageId: string;
+  /** Mise en page resserrée pour le panneau d'édition sur le site. */
   compact?: boolean;
 }) {
-  const [draft, setDraft] = useState<PageContent>(() => pageContentOf(page));
-  const [overridden, setOverridden] = useState(false);
+  const [original, setOriginal] = useState<Page | null>(null);
+  const [draft, setDraft] = useState<Page | null>(null);
+  const [slugText, setSlugText] = useState('');
   const [status, setStatus] = useState<Status>('loading');
   const [message, setMessage] = useState('');
+  // Change à chaque « Annuler » : remonte les champs qui gardent leur propre
+  // saisie (mots-clés).
+  const [resets, setResets] = useState(0);
 
   useEffect(() => {
     let active = true;
     setStatus('loading');
 
-    getPageContent(page.slug).then((content) => {
-      if (!active) return;
-      setDraft(content ?? pageContentOf(page));
-      setOverridden(content !== null);
-      setStatus('idle');
-      setMessage('');
-    });
+    getPage(pageId)
+      .then((page) => {
+        if (!active) return;
+        setOriginal(page);
+        setDraft(page);
+        setSlugText(page?.slug.join('/') ?? '');
+        setStatus(page ? 'idle' : 'missing');
+        setMessage('');
+      })
+      .catch((error) => {
+        console.error('[contenu] lecture impossible', error);
+        if (active) setStatus('missing');
+      });
 
     return () => {
       active = false;
     };
-  }, [page]);
+  }, [pageId]);
 
-  function update(patch: Partial<PageContent>) {
-    setDraft((current) => ({ ...current, ...patch }));
+  if (status === 'loading') {
+    return <p className="text-sm text-ink-400">Chargement de la page…</p>;
+  }
+  if (!draft || !original) {
+    return <p className="text-sm text-red-800">Page introuvable ou illisible.</p>;
+  }
+
+  const page = draft;
+  const loaded = original;
+  const dirty = JSON.stringify(page) !== JSON.stringify(original);
+  // L'accueil et les pages à route dédiée (Contact) ont une adresse fixée dans
+  // le code : la changer produirait une page vide.
+  const slugLocked = original.slug.length === 0 || Boolean(original.customRoute);
+
+  function update(patch: Partial<Page>) {
+    setDraft((current) => (current ? { ...current, ...patch } : current));
   }
 
   async function onSave() {
-    // Le référencement et le libellé de menu ne s'éditent pas ici : ils sont
-    // écrits dans le HTML au moment du build — le menu figure sur toutes les
-    // pages, pas seulement celle qu'on modifie. On réécrit systématiquement les
-    // valeurs du dépôt, pour qu'une ancienne surcharge ne traîne pas en base.
-    const origin = pageContentOf(page);
-    const parsed = pageContentSchema.safeParse(
-      normalize({ ...draft, navLabel: origin.navLabel, seo: origin.seo }),
-    );
+    const next = normalize(page);
+    const parsed = pageDocSchema.safeParse(docFromPage(next));
 
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       setStatus('error');
-      setMessage(
-        `${issue?.path.join(' › ') || 'Contenu'} : ${issue?.message ?? 'valeur invalide'}`,
-      );
+      setMessage(`${labelOf(issue?.path ?? [])} : ${issue?.message ?? 'valeur invalide'}`);
       return;
     }
 
     setStatus('saving');
     setMessage(''); // relance l'animation du toast même si le texte est identique
     try {
-      await savePageContent(page.slug, parsed.data);
-      setOverridden(true);
+      await savePage(next, loaded);
+      const moved = loaded.status === 'published' && pathOf(loaded) !== pathOf(next);
+      setOriginal(next);
+      setDraft(next);
       setStatus('idle');
-      setMessage('Page enregistrée — visible immédiatement sur le site.');
+      setMessage(
+        moved
+          ? `Enregistré. Redirection créée de ${pathOf(loaded)} vers ${pathOf(next)}. Cliquez « Publier » pour mettre en ligne.`
+          : 'Enregistré. Cliquez « Publier » pour mettre en ligne.',
+      );
     } catch (error) {
       console.error('[contenu] enregistrement impossible', error);
       setStatus('error');
-      setMessage('Enregistrement impossible. Vérifiez votre connexion.');
+      setMessage(
+        error instanceof ContentError ? error.message : 'Enregistrement impossible. Vérifiez votre connexion.',
+      );
     }
-  }
-
-  async function onReset() {
-    if (!window.confirm('Rétablir le texte d’origine de cette page ? Vos modifications en ligne seront perdues.')) {
-      return;
-    }
-
-    setStatus('saving');
-    setMessage('');
-    try {
-      await resetPageContent(page.slug);
-      setDraft(pageContentOf(page));
-      setOverridden(false);
-      setStatus('idle');
-      setMessage('Texte d’origine rétabli.');
-    } catch (error) {
-      console.error('[contenu] réinitialisation impossible', error);
-      setStatus('error');
-      setMessage('Réinitialisation impossible.');
-    }
-  }
-
-  if (status === 'loading') {
-    return <p className="text-sm text-ink-400">Chargement de la page…</p>;
   }
 
   return (
     <div className={compact ? 'space-y-6' : 'max-w-3xl space-y-8'}>
       <Toast message={message} tone={status === 'error' ? 'error' : 'success'} />
 
-      <p className="rounded-md bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
-        {overridden
-          ? 'Texte modifié en ligne : il remplace celui du site déployé.'
-          : 'Texte d’origine du site.'}{' '}
-        Vos modifications sont visibles par les visiteurs dès l’enregistrement.
-      </p>
+      <Section title="Page et menu" compact={compact}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectField
+            label="Statut"
+            value={page.status}
+            options={STATUS_OPTIONS}
+            disabled={slugLocked}
+            hint={slugLocked ? 'Cette page est indispensable au site : elle reste publiée.' : undefined}
+            onChange={(value) => update({ status: value })}
+          />
+          <label className="block">
+            <span className="text-sm font-medium text-ink-800">Adresse</span>
+            <span className="mt-1 flex items-center rounded-md border border-ink-200 text-sm focus-within:border-leaf-500">
+              <span className="pl-3 text-ink-400">/</span>
+              <input
+                type="text"
+                value={slugLocked ? original.slug.join('/') : slugText}
+                disabled={slugLocked}
+                onChange={(event) => {
+                  const text = event.target.value.toLowerCase().replace(/\s+/g, '-');
+                  setSlugText(text);
+                  update({ slug: text.split('/').filter(Boolean) });
+                }}
+                className="w-full rounded-md py-2 pr-3 text-ink-900 focus:outline-none disabled:bg-ink-50 disabled:text-ink-400"
+              />
+              <span className="pr-3 text-ink-400">/</span>
+            </span>
+            <span className="mt-1 block text-xs text-ink-500">
+              {slugLocked
+                ? 'Adresse fixe.'
+                : original.status === 'published'
+                  ? 'Changer l’adresse crée automatiquement une redirection depuis l’ancienne.'
+                  : 'Minuscules, chiffres et tirets.'}
+            </span>
+          </label>
+        </div>
 
-      <Section title="Identité de la page" compact={compact}>
         <Field
           label="Titre affiché (H1)"
-          value={draft.title}
+          value={page.title}
           maxLength={200}
           onChange={(title) => update({ title })}
         />
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Libellé court (menu, fil d’Ariane)"
+            value={page.navLabel}
+            maxLength={60}
+            onChange={(navLabel) => update({ navLabel })}
+          />
+          <Field
+            label="Intitulé complet (pied de page)"
+            value={page.navTitle ?? ''}
+            maxLength={120}
+            placeholder={page.title}
+            onChange={(navTitle) => update({ navTitle })}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <CheckboxField
+            label="Afficher dans le menu principal"
+            checked={Boolean(page.showInNav)}
+            hint="L’ordre du menu se règle dans la liste des pages."
+            onChange={(showInNav) => update({ showInNav })}
+          />
+          <CheckboxField
+            label="Ne pas référencer cette page"
+            checked={Boolean(page.noindex)}
+            hint="La page reste accessible mais Google ne l’indexe pas (mentions légales, page en préparation)."
+            onChange={(noindex) => update({ noindex })}
+          />
+        </div>
+      </Section>
+
+      <Section title="Référencement" compact={compact}>
+        <SeoPanel key={resets} page={page} onChange={(seo) => update({ seo })} />
       </Section>
 
       <Section title="Accroche et boutons" compact={compact}>
         <TextField
           label="Accroche sous le titre"
           rows={4}
-          value={draft.hero?.lead ?? ''}
+          value={page.hero?.lead ?? ''}
           maxLength={1200}
           hint="Laisser vide pour supprimer l’accroche et ses boutons."
-          onChange={(lead) =>
-            update({ hero: lead ? { ...draft.hero, lead } : null })
-          }
+          onChange={(lead) => update({ hero: { ...page.hero, lead } })}
         />
-        {draft.hero && (
+        {page.hero && (
           <TextField
             label="Texte de présentation"
             rows={6}
-            value={(draft.hero.body ?? []).join('\n\n')}
+            value={(page.hero.body ?? []).join('\n\n')}
             hint="Facultatif, affiché sous l’accroche. Une ligne vide sépare deux paragraphes."
             onChange={(text) =>
               update({
                 hero: {
-                  ...draft.hero!,
+                  ...page.hero!,
                   body: text
                     .split(/\n{2,}/)
                     .map((paragraph) => paragraph.trim())
@@ -168,64 +233,56 @@ export function PageEditor({
           />
         )}
 
-        {draft.hero && (
+        {page.hero && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
               label="Bouton principal — libellé"
-              value={draft.hero.primary?.label ?? ''}
+              value={page.hero.primary?.label ?? ''}
               maxLength={80}
               onChange={(label) =>
                 update({
                   hero: {
-                    ...draft.hero!,
-                    primary: label
-                      ? { label, href: draft.hero?.primary?.href ?? '#contact' }
-                      : undefined,
+                    ...page.hero!,
+                    primary: label ? { label, href: page.hero?.primary?.href ?? '#contact' } : undefined,
                   },
                 })
               }
             />
             <Field
               label="Bouton principal — lien"
-              value={draft.hero.primary?.href ?? ''}
+              value={page.hero.primary?.href ?? ''}
               maxLength={300}
               onChange={(href) =>
                 update({
                   hero: {
-                    ...draft.hero!,
-                    primary: draft.hero?.primary
-                      ? { ...draft.hero.primary, href }
-                      : undefined,
+                    ...page.hero!,
+                    primary: page.hero?.primary ? { ...page.hero.primary, href } : undefined,
                   },
                 })
               }
             />
             <Field
               label="Bouton secondaire — libellé"
-              value={draft.hero.secondary?.label ?? ''}
+              value={page.hero.secondary?.label ?? ''}
               maxLength={80}
               onChange={(label) =>
                 update({
                   hero: {
-                    ...draft.hero!,
-                    secondary: label
-                      ? { label, href: draft.hero?.secondary?.href ?? '' }
-                      : undefined,
+                    ...page.hero!,
+                    secondary: label ? { label, href: page.hero?.secondary?.href ?? '' } : undefined,
                   },
                 })
               }
             />
             <Field
               label="Bouton secondaire — lien"
-              value={draft.hero.secondary?.href ?? ''}
+              value={page.hero.secondary?.href ?? ''}
               maxLength={300}
               onChange={(href) =>
                 update({
                   hero: {
-                    ...draft.hero!,
-                    secondary: draft.hero?.secondary
-                      ? { ...draft.hero.secondary, href }
-                      : undefined,
+                    ...page.hero!,
+                    secondary: page.hero?.secondary ? { ...page.hero.secondary, href } : undefined,
                   },
                 })
               }
@@ -233,18 +290,18 @@ export function PageEditor({
           </div>
         )}
 
-        {draft.hero && (
+        {page.hero && (
           <div className="space-y-3 border-t border-ink-100 pt-4">
             <ImageField
-              value={draft.hero.image ?? { url: '' }}
+              value={page.hero.image ?? { url: '' }}
               onChange={(image) =>
                 update({
                   hero: {
-                    ...draft.hero!,
+                    ...page.hero!,
                     image: image.url
                       ? {
-                          alt: draft.hero?.image?.alt ?? '',
-                          caption: draft.hero?.image?.caption,
+                          alt: page.hero?.image?.alt ?? '',
+                          caption: page.hero?.image?.caption,
                           ...image,
                           url: image.url,
                         }
@@ -253,26 +310,24 @@ export function PageEditor({
                 })
               }
             />
-            {draft.hero.image && (
+            {page.hero.image && (
               <>
                 <Field
                   label="Description de l’image"
-                  value={draft.hero.image.alt}
+                  value={page.hero.image.alt}
                   maxLength={300}
                   hint="Obligatoire : lue par les lecteurs d’écran et par les moteurs de recherche."
                   onChange={(alt) =>
-                    update({ hero: { ...draft.hero!, image: { ...draft.hero!.image!, alt } } })
+                    update({ hero: { ...page.hero!, image: { ...page.hero!.image!, alt } } })
                   }
                 />
                 <Field
                   label="Légende"
-                  value={draft.hero.image.caption ?? ''}
+                  value={page.hero.image.caption ?? ''}
                   maxLength={300}
                   hint="Facultative, affichée sous l’image."
                   onChange={(caption) =>
-                    update({
-                      hero: { ...draft.hero!, image: { ...draft.hero!.image!, caption } },
-                    })
+                    update({ hero: { ...page.hero!, image: { ...page.hero!.image!, caption } } })
                   }
                 />
               </>
@@ -282,10 +337,7 @@ export function PageEditor({
       </Section>
 
       <Section title="Contenu de la page" compact={compact}>
-        <BlockList
-          blocks={draft.blocks}
-          onChange={(blocks: Block[]) => update({ blocks })}
-        />
+        <BlockList blocks={page.blocks} onChange={(blocks: Block[]) => update({ blocks })} />
       </Section>
 
       {/* En back-office, la barre reprend l'aspect des cartes au-dessus et se
@@ -306,16 +358,30 @@ export function PageEditor({
         >
           {status === 'saving' ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-        {overridden && (
-          <button
-            type="button"
-            onClick={onReset}
-            disabled={status === 'saving'}
-            className="rounded-md border border-ink-200 px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
-          >
-            Rétablir le texte d’origine
-          </button>
+        {dirty && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(original);
+                setSlugText(original.slug.join('/'));
+                setResets((value) => value + 1);
+              }}
+              disabled={status === 'saving'}
+              className="rounded-md border border-ink-200 px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
+            >
+              Annuler
+            </button>
+            <span className="text-xs text-amber-700">Modifications non enregistrées</span>
+          </>
         )}
+        <Link
+          href={`/admin/apercu/?id=${encodeURIComponent(pageId)}`}
+          target="_blank"
+          className="ml-auto text-sm text-ink-500 underline underline-offset-4 hover:text-ink-800"
+        >
+          Aperçu ↗
+        </Link>
       </div>
     </div>
   );
@@ -344,30 +410,52 @@ function Section({
   );
 }
 
+/** Chemin d'une erreur de validation, en mots plutôt qu'en clés. */
+function labelOf(path: PropertyKey[]): string {
+  const names: Record<string, string> = {
+    slug: 'Adresse',
+    seo: 'Référencement',
+    title: 'Titre',
+    description: 'Description',
+    navLabel: 'Libellé court',
+    hero: 'Accroche',
+    blocks: 'Contenu',
+  };
+  return path.map((key) => (typeof key === 'number' ? `n° ${key + 1}` : (names[String(key)] ?? String(key)))).join(' › ') || 'Page';
+}
+
 /**
  * Les champs facultatifs laissés vides sont retirés plutôt qu'enregistrés
  * comme chaîne vide : un titre de bloc vide ne doit pas produire un `<h2>`
  * vide sur le site.
  */
-function normalize(content: PageContent): PageContent {
+function normalize(page: Page): Page {
   const blank = (value?: string) => (value && value.trim() ? value.trim() : undefined);
 
   return {
-    ...content,
-    hero: content.hero?.lead.trim()
+    ...page,
+    navTitle: blank(page.navTitle),
+    seo: {
+      ...page.seo,
+      keywords: page.seo.keywords?.length ? page.seo.keywords : undefined,
+      image: blank(page.seo.image),
+    },
+    hero: page.hero?.lead.trim()
       ? {
-          lead: content.hero.lead,
-          body: content.hero.body?.length ? content.hero.body : undefined,
-          primary: content.hero.primary?.label ? content.hero.primary : undefined,
-          secondary: content.hero.secondary?.label ? content.hero.secondary : undefined,
+          // Surtitre, citation, chiffres clés… ne s'éditent pas ici mais
+          // doivent survivre à l'enregistrement.
+          ...page.hero,
+          body: page.hero.body?.length ? page.hero.body : undefined,
+          primary: page.hero.primary?.label ? page.hero.primary : undefined,
+          secondary: page.hero.secondary?.label ? page.hero.secondary : undefined,
           // Une image sans description serait refusée à la validation : on la
           // retire plutôt que de bloquer l'enregistrement de toute la page.
-          image: content.hero.image?.alt.trim()
-            ? { ...content.hero.image, caption: blank(content.hero.image.caption) }
+          image: page.hero.image?.alt.trim()
+            ? { ...page.hero.image, caption: blank(page.hero.image.caption) }
             : undefined,
         }
-      : null,
-    blocks: content.blocks.map((block): Block => {
+      : undefined,
+    blocks: page.blocks.map((block): Block => {
       switch (block.type) {
         case 'section':
           return {

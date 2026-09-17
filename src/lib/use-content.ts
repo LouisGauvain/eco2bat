@@ -7,19 +7,16 @@ import {
   CONTENT_UPDATED_EVENT,
   defaultCompany,
   getCompany,
-  getPageContent,
-  mergePage,
 } from './content-store';
 import { getClientAuth } from './firebase/client';
 import type { Company } from '@/content/schema';
-import type { Page } from '@/content/types';
 
 /**
- * Lecture du contenu surchargé, côté navigateur.
+ * Lectures côté navigateur : coordonnées de l'entreprise, modifiables en ligne
+ * sans republier, et état de connexion du gérant.
  *
- * Le premier rendu est toujours celui du dépôt : c'est lui qui se trouve dans
- * le HTML statique, donc dans l'index des moteurs. La surcharge Firestore
- * arrive après, et ne remplace le contenu que si elle est valide.
+ * Les pages, elles, ne se lisent plus ici : elles sont construites au build
+ * (`pages-source.ts`).
  */
 
 /** Incrémenté à chaque sauvegarde, pour relancer les lectures en cours de page. */
@@ -33,29 +30,6 @@ function useContentVersion(): number {
   }, []);
 
   return version;
-}
-
-export function usePageContent(page: Page): Page {
-  const [merged, setMerged] = useState<Page>(page);
-  const version = useContentVersion();
-
-  useEffect(() => {
-    let active = true;
-    setMerged(page);
-
-    getPageContent(page.slug).then((content) => {
-      if (!active || !content) return;
-      setMerged(mergePage(page, content));
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [page, version]);
-
-  // Le <title> et la meta-description restent ceux du HTML statique : le
-  // référencement se gère dans le dépôt, pas depuis le back-office.
-  return merged;
 }
 
 export function useCompany(): Company {

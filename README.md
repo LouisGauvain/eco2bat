@@ -29,8 +29,26 @@ npm run dev                  # http://localhost:3000
 4. **Déployer les règles** : `npm run deploy:rules`. À faire avant la première
    utilisation, sinon toutes les écritures seront refusées.
 
-Aucune clé de compte de service n'est nécessaire : l'application ne parle à
-Firebase que depuis le navigateur.
+5. **Importer les pages** : se connecter à `/admin/contenu/` et cliquer
+   « Importer les pages ». Tant que la collection `pages` est vide, le site est
+   construit à partir des fichiers de `src/content/pages/`.
+
+### Publication depuis le back-office
+
+Le bouton « Publier » relance le build et le déploiement. Mise en place, une
+fois :
+
+1. **Forfait Blaze** sur le projet Firebase (requis par les fonctions Cloud).
+2. **Jeton GitHub** : fine-grained token limité au dépôt, permission
+   « Actions » en lecture et écriture, puis
+   `firebase functions:secrets:set GITHUB_TOKEN`.
+3. **Déployer les fonctions** : `cd functions && npm install && cd .. && npm run deploy:functions`.
+4. **Secrets du dépôt GitHub** (Settings › Secrets and variables › Actions) :
+   les variables `NEXT_PUBLIC_*` de `.env.local`, et `FIREBASE_SERVICE_ACCOUNT`
+   (clé JSON d'un compte de service ayant le rôle « Administrateur Firebase
+   Hosting »). La liste complète est en tête de `.github/workflows/publish.yml`.
+
+Le reste de l'application ne parle à Firebase que depuis le navigateur.
 
 ### Émulateurs
 
@@ -48,9 +66,15 @@ npx firebase emulators:start --only hosting   # http://localhost:5055
 
 ## Déploiement
 
+En temps normal, le gérant publie depuis le back-office (bouton « Publier ») :
+le workflow `.github/workflows/publish.yml` construit le site à partir de
+Firestore, ajoute les redirections du back-office à `firebase.json`
+(`scripts/sync-redirects.mjs`) et déploie.
+
 ```bash
-npm run deploy         # build + firebase deploy --only hosting
-npm run deploy:rules   # règles et index Firestore
+npm run deploy             # build + déploiement à la main (sans les redirections du back-office)
+npm run deploy:rules       # règles et index Firestore
+npm run deploy:functions   # fonctions de publication
 ```
 
 Le build produit un dossier `out/` entièrement statique, servi par Firebase
@@ -60,20 +84,22 @@ Hosting. Il n'y a pas de serveur applicatif.
 
 Le site est **entièrement statique**. Il n'y a pas de serveur applicatif :
 le navigateur parle directement à Firebase, et ce sont les règles Firestore
-qui décident de tout.
+qui décident de tout. Seule exception : deux fonctions Cloud (`functions/`)
+qui déclenchent la publication, parce qu'elle demande un jeton GitHub.
 
 ```
 src/
-  content/          Contenu du site, versionné et typé
-    site.ts         Coordonnées, menu, zone d'intervention (source unique)
+  content/          Modèle de contenu
+    site.ts         Coordonnées, zone d'intervention, menu d'origine
     types.ts        Modèle de page et de blocs
-    pages/          Une entrée par page de l'arborescence cible
-    index.ts        Registre : ajouter une page ici suffit à la publier
+    schema.ts       Validation Zod d'une page (back-office et build)
+    pages/          Pages d'origine, copiées dans Firestore à l'import
+    index.ts        Fonctions sur les pages : menu, fil d'Ariane, import
   app/
     (site)/         Site public — en-tête, pied de page, contenu
-      [...slug]/    Route générique pilotée par le registre de contenu
+      [...slug]/    Route générique : une page publiée = une URL
       contact/      Page et formulaire qualifiant
-    admin/          Back-office (demandes, contenu, entreprise, paramètres)
+    admin/          Back-office (demandes, contenu, aperçu, entreprise, paramètres)
   components/
     admin/          Connexion, demandes, éditeur de pages, infos entreprise
     content/        Rendu des blocs de page
@@ -83,8 +109,10 @@ src/
     leads.ts        Types, constantes et schéma Zod des demandes
     leads-client.ts Lecture et écriture Firestore des demandes
     settings.ts     Réglages pilotés depuis le back-office
-    content-store.ts Surcharge du contenu des pages, écrite depuis le back-office
-    use-content.ts  Lecture de cette surcharge sur le site public
+    pages-source.ts Lecture des pages dans Firestore, au build
+    content-store.ts Écriture des pages et redirections depuis le back-office
+    publish.ts      Bouton « Publier » → fonction Cloud → GitHub Actions
+    use-content.ts  Coordonnées de l'entreprise et état de connexion
     rich-text.ts    Corps d'une section ↔ texte simple, pour l'éditeur
     seo.ts          Métadonnées et données structurées
 ```
@@ -93,101 +121,27 @@ src/
 
 | Ce qu'on veut changer | Où |
 |---|---|
-| Le texte d'une page, son titre, sa méta-description | `src/content/pages/*.ts`, ou back-office `/admin/contenu/` |
-| Ajouter une page | un fichier dans `pages/`, puis l'inscrire dans `content/index.ts` |
+| Le texte, les images, le titre et la description Google d'une page | back-office `/admin/contenu/`, puis « Publier » |
+| Les mots-clés d'une page | back-office, section « Référencement » (vérifie leur présence dans la page) |
+| Créer, dupliquer, supprimer une page, changer son adresse | back-office — les redirections 301 sont créées automatiquement |
+| Le menu (pages affichées, ordre) | back-office : case « Afficher dans le menu », flèches de la liste |
 | Téléphone, adresse, zone d'intervention | back-office `/admin/entreprise/` (valeurs d'origine : `src/content/site.ts`) |
-| Le menu | `src/content/site.ts` |
-| Une redirection depuis l'ancien site | `firebase.json` (section `redirects`) |
+| Une redirection écrite à la main | `firebase.json` (section `redirects`) |
+| Un nouveau type de bloc | `content/types.ts`, `content/schema.ts`, `components/content/Blocks.tsx`, `components/admin/BlockEditor.tsx` |
 | Les en-têtes HTTP, le cache | `firebase.json` (section `headers`) |
 | Qui peut lire ou écrire quoi | `firestore.rules` |
 | Un bandeau, le délai de réponse annoncé | back-office `/admin/parametres/` |
 
-**Le dépôt reste la source, le back-office la surcharge.** Le référencement est
-l'enjeu central de cette refonte : le HTML statique servi aux moteurs est
-toujours celui du dépôt, écrit dans des fichiers typés — une page ne peut donc
-pas se retrouver sans titre ni méta-description.
+**Firestore est la source, le build la met en ligne.** Les pages vivent dans
+la collection `pages`. Enregistrer dans le back-office ne change pas le site
+en ligne : l'aperçu (`/admin/apercu/?id=…`) montre la version enregistrée, et
+« Publier » reconstruit le HTML statique à partir de la base. Ce que lit Google
+est donc toujours exactement ce qui a été publié — titre, description, texte,
+menu et sitemap compris.
 
-Le back-office peut réécrire le texte d'une page (`/admin/contenu/`, ou le
-bouton « Modifier cette page » affiché sur le site quand le gérant est
-connecté). Cette version est stockée dans la collection Firestore `pages` et
-remplace le texte affiché **après le chargement de la page** : le visiteur la
-voit tout de suite, l'index de Google la reçoit au déploiement suivant. Même
-règle pour les coordonnées de `/admin/entreprise/` : elles suivent partout sur
-le site, mais les métadonnées et les données structurées sont générées au build.
+Le build s'arrête sur une page invalide plutôt que de mettre en ligne une page
+à trous : le back-office affiche alors « Dernière publication échouée », avec
+le lien vers le journal GitHub.
 
-La structure — quelles pages existent, à quelle URL, dans quel menu — n'est pas
-modifiable en ligne : créer une page, c'est créer une URL et une entrée de
-sitemap, et changer une URL demande d'en poser la redirection.
-
-### Statut rédactionnel
-
-Chaque page porte un `status` :
-
-- `todo` — texte à écrire ou à valider avec le client. **Exclue du sitemap et
-  rendue en `noindex`** : mieux vaut être absent de l'index que d'y entrer avec
-  une page à trous.
-- `draft` — rédigée, en attente de relecture client. Indexable.
-- `ready` — validée.
-
-## Sécurité
-
-Le site étant statique, **`firestore.rules` est la seule barrière réelle**.
-Masquer une interface dans le navigateur n'est jamais une protection : ce qui
-compte est ce que le serveur Firebase accepte.
-
-Ce que les règles autorisent :
-
-| Collection | Visiteur anonyme | Utilisateur connecté |
-|---|---|---|
-| `leads` | déposer une demande, rien d'autre | tout lire, modifier, supprimer |
-| `settings` | lire (pour le bandeau) | modifier |
-| le reste | rien | rien |
-
-Points d'attention :
-
-- **Le dépôt de demande est public** — c'est nécessaire pour un formulaire de
-  contact. Les règles imposent les champs, leurs types, leurs longueurs, les
-  valeurs autorisées, un statut initial non falsifiable et des horodatages
-  posés par le serveur. Un robot peut donc créer une demande, mais ne peut ni
-  en lire une, ni détourner la collection.
-- **Aucune inscription n'est ouverte** : les comptes sont créés à la main dans
-  la console. « Connecté » vaut donc « c'est le gérant ».
-- Le formulaire public a un champ appât et un délai minimal de saisie, qui
-  écartent les robots les plus simples sans imposer de captcha.
-- Si le spam devenait un problème, la réponse est **App Check** (attestation du
-  navigateur), à activer sans changer une ligne de ce code.
-
-## Avant la bascule
-
-Points bloquants relevés par l'audit, à traiter avant la mise en ligne :
-
-- [ ] **Arbitrage client — périmètre géographique** : rayon réel autour de
-      La Ciotat, ou double implantation PACA + Occitanie assumée avec pages
-      locales. Le site actuel dit « PACA » mais cible aussi l'Occitanie.
-- [ ] **Arbitrage client — prestations actives en 2026** : la page
-      `/particuliers/` (2013) listait 7 prestations, les métadonnées en
-      annonçaient d'autres (DPE immeuble, DTG, AMO). Lesquelles sont vendues ?
-- [ ] **Mentions légales et politique de confidentialité** : compléter les
-      champs entre crochets. Obligation LCEN et RGPD non remplie aujourd'hui.
-- [ ] **Volet aides financières** (`audit-energetique.ts`) : barèmes et parcours
-      à vérifier à la date de publication. Prévoir une relecture annuelle.
-- [ ] **Références réglementaires** : RE2020 (construction neuve), audit
-      obligatoire avant vente, obligations copropriété.
-- [ ] **Qualifications** : numéros et validité RGE et OPQIBI, assurance RC pro.
-- [ ] **Exporter les URL indexées** (Search Console + crawl) : le plan de
-      redirections de `firebase.json` ne couvre que les 7 pages du menu.
-- [ ] **Récupérer les accès Search Console et Analytics** du client pour mesurer
-      le trafic par page avant suppression.
-- [ ] Vérifier après bascule qu'aucune ancienne URL ne renvoie de 404.
-
-## Scripts
-
-| Commande | Effet |
-|---|---|
-| `npm run dev` | Serveur de développement |
-| `npm run build` | Build de production |
-| `npm run typecheck` | Vérification des types |
-| `npm run lint` | ESLint |
-| `npm run emulators` | Émulateurs Firebase |
-| `npm run deploy` | Build puis déploiement sur Firebase Hosting |
-| `npm run deploy:rules` | Déploie règles et index Firestore |
+L'accueil et la page Contact ont une route dédiée dans `src/app` : leur
+adresse est fixe et ils ne peuvent être ni supprimés ni dépubliés.

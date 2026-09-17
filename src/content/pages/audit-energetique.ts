@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** Audit énergétique — maquette « Audit » du dossier Refonte Eco2bat. */
-export const auditEnergetique: Page = {
+export const auditEnergetique: SeedPage = {
   slug: ['audit-energetique'],
   navLabel: 'Audit énergétique',
   title: 'Audit énergétique logement',
@@ -111,6 +111,6 @@ export const auditEnergetique: Page = {
       primary: { label: 'Demander un audit', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.9,
 };

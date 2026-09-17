@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** Contrôles RT2012 — maquette « RT2012 » du dossier Refonte Eco2bat. */
-export const controlesRt2012: Page = {
+export const controlesRt2012: SeedPage = {
   slug: ['controles-rt2012'],
   navLabel: 'RT2012',
   title: 'Contrôles RT2012 fin de chantier',
@@ -99,6 +99,6 @@ export const controlesRt2012: Page = {
       primary: { label: 'Nous contacter', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.8,
 };

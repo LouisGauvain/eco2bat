@@ -1,4 +1,4 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /**
  * Contact.
@@ -11,7 +11,7 @@ import type { Page } from '../types';
  * formulaire et les coordonnées éditables ; le texte qui l'entoure vient d'ici
  * et se modifie depuis le back-office comme celui des autres pages.
  */
-export const contact: Page = {
+export const contact: SeedPage = {
   slug: ['contact'],
   navLabel: 'Contact',
   title: 'Parlons de votre projet',
@@ -27,7 +27,7 @@ export const contact: Page = {
       "Plus votre demande est précise, plus notre réponse le sera. Le formulaire ci-dessous nous permet de vous répondre par une orientation claire et, le cas échéant, un devis — plutôt que par une demande d'informations complémentaires.",
   },
   blocks: [],
-  status: 'draft',
+  status: 'published',
   customRoute: true,
   sitemapPriority: 0.9,
 };

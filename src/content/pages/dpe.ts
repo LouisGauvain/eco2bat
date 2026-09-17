@@ -1,7 +1,7 @@
-import type { Page } from '../types';
+import type { SeedPage } from '../types';
 
 /** DPE — maquette « DPE » du dossier Refonte Eco2bat. */
-export const dpe: Page = {
+export const dpe: SeedPage = {
   slug: ['dpe'],
   navLabel: 'DPE',
   title: 'Diagnostic de Performance Énergétique (DPE)',
@@ -93,6 +93,6 @@ export const dpe: Page = {
       primary: { label: 'Demander un DPE', href: '#contact' },
     },
   ],
-  status: 'draft',
+  status: 'published',
   sitemapPriority: 0.9,
 };

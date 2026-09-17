@@ -4,7 +4,8 @@ import { ContactWidget } from '@/components/contact/ContactWidget';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { btnPrimary, container, eyebrow } from '@/components/layout/ui';
-import { mainNav } from '@/content/site';
+import { navItems } from '@/content';
+import { publishedPages } from '@/lib/pages-source';
 
 /**
  * 404 globale. Beaucoup d'anciennes URL WordPress restent indexées : celles qui
@@ -13,10 +14,12 @@ import { mainNav } from '@/content/site';
  * cul-de-sac. Hors du groupe `(site)`, la page rappelle elle-même l'en-tête et
  * le pied de page.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const nav = navItems(await publishedPages());
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <Header nav={nav} />
       {/* Même ancre que dans le gabarit du site : le lien d'évitement de
           l'en-tête pointe vers #contenu. */}
       <main id="contenu" className="flex-1">
@@ -31,7 +34,7 @@ export default function NotFound() {
           </p>
 
           <ul className="mt-8 space-y-2.5">
-            {mainNav.map((item) => (
+            {nav.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
@@ -48,7 +51,7 @@ export default function NotFound() {
           </Link>
         </div>
       </main>
-      <Footer />
+      <Footer nav={nav} />
       <ContactWidget />
     </div>
   );
