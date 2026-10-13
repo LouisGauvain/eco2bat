@@ -297,6 +297,12 @@ async function touchNow() {
   await setDoc(doc(getDb(), collections.settings, CONTENT_DOC), { changedAt: serverTimestamp() });
 }
 
+/** Modification hors pages (suivi…) qui ne part en ligne qu'à la publication. */
+export async function markContentChanged(): Promise<void> {
+  await touchNow();
+  notifyContentUpdated();
+}
+
 export async function lastContentChange(): Promise<number | null> {
   const snapshot = await getDoc(doc(getDb(), collections.settings, CONTENT_DOC));
   return snapshot.exists() ? millis(snapshot.data().changedAt) : null;

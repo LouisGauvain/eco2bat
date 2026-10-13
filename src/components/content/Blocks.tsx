@@ -79,6 +79,36 @@ function BlockView({ block, spacious = false }: { block: Block; spacious?: boole
       );
     }
 
+    case 'textImage': {
+      const left = block.imageSide === 'left';
+      const tone = { card: 'bg-card', green: 'tint-green', blue: 'tint-blue' }[block.tone ?? 'card'];
+      return (
+        <section
+          className={`${shell} ${tone} grid items-center gap-8 md:grid-cols-2 md:gap-10 ${spacious ? 'p-8 sm:p-10' : 'p-7 sm:p-9'}`}
+        >
+          <div className={left ? 'md:order-2' : ''}>
+            <Heading block={block} size={spacious ? 'text-[26px]' : undefined} />
+            <Prose body={block.body} />
+          </div>
+          {block.image.url && (
+            <figure className={left ? 'md:order-1' : ''}>
+              <ContentImage
+                url={block.image.url}
+                alt={block.image.alt}
+                width={block.image.width ?? 1200}
+                height={block.image.height ?? 800}
+                sizes="(min-width: 1140px) 540px, (min-width: 768px) 50vw, 100vw"
+                className="h-auto w-full rounded-2xl"
+              />
+              {block.image.caption && (
+                <figcaption className="mt-2 text-xs text-ink-500">{block.image.caption}</figcaption>
+              )}
+            </figure>
+          )}
+        </section>
+      );
+    }
+
     case 'panels': {
       const tints = ['tint-green', 'tint-blue', 'bg-card'];
       return (

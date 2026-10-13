@@ -7,20 +7,25 @@ import { ContentImage } from './ContentImage';
 import type { Page } from '@/content/types';
 import { Backdrop } from '@/components/layout/Backdrop';
 import { btnGhostDark, btnLight, btnPrimary, btnSecondary, container, eyebrow, label } from '@/components/layout/ui';
+import { useLivePage } from '@/lib/live-page';
 
 /**
  * Gabarit commun à toutes les pages du site public, et à l'aperçu du
  * back-office.
  *
  * Sur le site, le contenu reçu est celui de la dernière publication, rendu au
- * build : c'est lui qui part dans le HTML statique.
+ * build : c'est lui qui part dans le HTML statique. Pendant que le gérant
+ * modifie la page depuis le site, c'est sa version en cours qui s'affiche
+ * (`useLivePage`).
  *
  * Deux heros, repris des maquettes : l'accueil ouvre sur une bande vert
  * profond pleine largeur, titre à gauche et citation négaWatt à droite ; les
  * pages de mission sont alignées à gauche sur le papier, avec l'illustration
  * éventuelle à droite du titre.
  */
-export function PageView({ page, children }: { page: Page; children?: React.ReactNode }) {
+export function PageView({ page: published, children }: { page: Page; children?: React.ReactNode }) {
+  const page = useLivePage(published.id) ?? published;
+
   if (page.slug.length === 0) {
     return (
       <article>

@@ -4,8 +4,9 @@ import { Banner } from '@/components/layout/Banner';
 import { CookieBanner } from '@/components/layout/CookieBanner';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { Tracking } from '@/components/layout/Tracking';
 import { navItems } from '@/content';
-import { publishedPages } from '@/lib/pages-source';
+import { publishedPages, publishedTracking } from '@/lib/pages-source';
 import { jsonLdScript, organizationJsonLd } from '@/lib/seo';
 
 /** Cadre du site public : bandeau, en-tête, contenu, pied de page. */
@@ -15,6 +16,7 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }) {
   const nav = navItems(await publishedPages());
+  const tracking = await publishedTracking();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -24,7 +26,8 @@ export default async function SiteLayout({
         {children}
       </main>
       <Footer nav={nav} />
-      <CookieBanner />
+      <CookieBanner analytics={Boolean(tracking.gtmId || tracking.ga4Id)} marketing={Boolean(tracking.metaPixelId)} />
+      <Tracking ids={tracking} />
       {/* Formulaire de contact, accessible depuis toutes les pages. */}
       <ContactWidget />
       {/* Outils d'édition, affichés uniquement au gérant connecté. */}

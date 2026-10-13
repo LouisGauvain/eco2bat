@@ -3,7 +3,9 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { z } from 'zod';
 
+import { markContentChanged } from './content-store';
 import { collections, getDb } from './firebase/client';
+import { emptyTracking, TRACKING_DOC, trackingSchema, type Tracking } from '@/content/tracking';
 
 /**
  * Réglages pilotés depuis le back-office.
@@ -56,4 +58,18 @@ export async function saveSettings(settings: Settings): Promise<void> {
     { ...settings, updatedAt: serverTimestamp() },
     { merge: true },
   );
+}
+
+/** Identifiants de suivi. Pris en compte à la prochaine publication. */
+export async function getTracking(): Promise<Tracking> {
+  const snapshot = await getDoc(doc(getDb(), collections.settings, TRACKING_DOC));
+  if (!snapshot.exists()) return emptyTracking;
+  const parsed = trackingSchema.safeParse(snapshot.data());
+  return parsed.success ? parsed.data : emptyTracking;
+}
+
+export async function saveTracking(tracking: Tracking): Promise<void> {
+  await setDoc(doc(getDb(), collections.settings, TRACKING_DOC), { ...tracking, updatedAt: serverTimestamp() });
+  // Le site doit être republié : le bouton « Publier » le signale.
+  await markContentChanged();
 }

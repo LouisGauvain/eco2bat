@@ -76,8 +76,18 @@ type State =
   | { kind: 'unavailable' }
   | { kind: 'ready'; run: PublishRun | null; changedAt: number | null };
 
+/**
+ * Dernier état connu, gardé d'une page du back-office à l'autre : l'en-tête
+ * est remonté à chaque navigation, et repartir de zéro le ferait sauter.
+ */
+let lastState: State = { kind: 'loading' };
+
 export function PublishControl() {
-  const [state, setState] = useState<State>({ kind: 'loading' });
+  const [state, setStateRaw] = useState<State>(lastState);
+  const setState = useCallback((next: State) => {
+    lastState = next;
+    setStateRaw(next);
+  }, []);
   const [requestedAt, setRequestedAt] = useState<number | null>(null);
   const [requestFailed, setRequestFailed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -93,7 +103,7 @@ export function PublishControl() {
     } finally {
       setNow(Date.now());
     }
-  }, []);
+  }, [setState]);
 
   useEffect(() => {
     refresh();
@@ -137,7 +147,15 @@ export function PublishControl() {
     }
   }
 
-  if (state.kind === 'loading') return null;
+  if (state.kind === 'loading') {
+    // Même gabarit que l'état chargé, pour que l'en-tête ne bouge pas.
+    return (
+      <div className="flex items-center gap-3 text-sm" aria-hidden>
+        <span className="invisible hidden text-xs sm:inline">Modifications non publiées</span>
+        <span className="rounded-md bg-ink-300 px-4 py-1.5 font-semibold text-white">Publier</span>
+      </div>
+    );
+  }
 
   if (state.kind === 'unavailable') {
     return <span className="text-xs text-ink-400">Publication indisponible</span>;

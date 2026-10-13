@@ -4,11 +4,13 @@ import { useState } from 'react';
 
 import {
   AddButton,
+  DragHandle,
   Field,
   ItemControls,
   SelectField,
   TextField,
   moved,
+  useDragSort,
   removed,
   replaced,
 } from './fields';
@@ -26,6 +28,7 @@ import { richToText, textToRich } from '@/lib/rich-text';
 
 const BLOCK_LABELS: Record<Block['type'], string> = {
   section: 'Section de texte',
+  textImage: 'Texte et image',
   panels: 'Cartes côte à côte',
   steps: 'Étapes numérotées',
   cards: 'Cartes',
@@ -48,6 +51,8 @@ function emptyBlock(type: Block['type']): Block {
   switch (type) {
     case 'section':
       return { type: 'section', title: '', body: [] };
+    case 'textImage':
+      return { type: 'textImage', title: '', body: [], image: { url: '', alt: '' } };
     case 'panels':
       return {
         type: 'panels',
@@ -92,6 +97,8 @@ function summarize(block: Block): string {
     case 'links':
     case 'logos':
       return block.title || '(sans titre)';
+    case 'textImage':
+      return block.title || block.image.alt || '(sans titre)';
     case 'panels':
       return block.panels.map((panel) => panel.eyebrow || panel.title).filter(Boolean).join(' / ') || '(sans titre)';
     case 'quote':
@@ -114,6 +121,14 @@ export function BlockList({
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  // La section ouverte reste ouverte là où on la dépose.
+  function move(from: number, to: number) {
+    const order = moved(blocks.map((_, index) => index), from, to);
+    onChange(moved(blocks, from, to));
+    setOpenIndex((current) => (current === null ? null : order.indexOf(current)));
+  }
+  const drag = useDragSort(move);
+
   return (
     <div className="space-y-3">
       {blocks.length === 0 && (
@@ -125,8 +140,9 @@ export function BlockList({
       {blocks.map((block, index) => {
         const open = openIndex === index;
         return (
-          <div key={index} className="rounded-lg border border-ink-200 bg-white">
+          <div key={index} {...drag.itemProps(index)} className={`rounded-lg border border-ink-200 bg-white ${drag.stateClass(index)}`}>
             <div className="flex items-center gap-3 px-4 py-3">
+              <DragHandle label={`le bloc ${index + 1}`} {...drag.handleProps(index)} />
               <button
                 type="button"
                 onClick={() => setOpenIndex(open ? null : index)}
@@ -140,12 +156,8 @@ export function BlockList({
               </button>
               <ItemControls
                 label={`le bloc ${index + 1}`}
-                onUp={index > 0 ? () => onChange(moved(blocks, index, index - 1)) : undefined}
-                onDown={
-                  index < blocks.length - 1
-                    ? () => onChange(moved(blocks, index, index + 1))
-                    : undefined
-                }
+                onUp={index > 0 ? () => move(index, index - 1) : undefined}
+                onDown={index < blocks.length - 1 ? () => move(index, index + 1) : undefined}
                 onRemove={() => {
                   onChange(removed(blocks, index));
                   setOpenIndex(null);
@@ -220,6 +232,74 @@ function BlockFields({
             hint="Le texte courant se lit mieux aligné à gauche : réserver le centrage aux sections courtes."
             onChange={(align) => onChange({ ...block, align })}
           />
+        </>
+      );
+
+    case 'textImage':
+      return (
+        <>
+          <Field
+            label="Surtitre"
+            value={block.eyebrow ?? ''}
+            maxLength={80}
+            hint="Facultatif : petit intitulé vert en capitales au-dessus du titre."
+            onChange={(eyebrow) => onChange({ ...block, eyebrow })}
+          />
+          <Field
+            label="Titre"
+            value={block.title ?? ''}
+            maxLength={200}
+            onChange={(title) => onChange({ ...block, title })}
+          />
+          <TextField
+            label="Texte"
+            rows={8}
+            value={richToText(block.body)}
+            hint="Une ligne vide sépare deux paragraphes. « ## » commence un sous-titre, « - » un point de liste."
+            onChange={(text) => onChange({ ...block, body: textToRich(text) })}
+          />
+          <div className="space-y-3 border-t border-ink-100 pt-4">
+            <ImageField
+              value={block.image}
+              onChange={(image) => onChange({ ...block, image: { ...block.image, ...image, url: image.url ?? '' } })}
+            />
+            <Field
+              label="Description de l’image"
+              value={block.image.alt}
+              maxLength={300}
+              hint="Obligatoire : lue par les lecteurs d’écran et par Google. Décrire ce que montre l’image."
+              onChange={(alt) => onChange({ ...block, image: { ...block.image, alt } })}
+            />
+            <Field
+              label="Légende"
+              value={block.image.caption ?? ''}
+              maxLength={300}
+              hint="Facultative, affichée sous l’image."
+              onChange={(caption) => onChange({ ...block, image: { ...block.image, caption } })}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectField
+              label="Position de l’image"
+              value={block.imageSide ?? 'right'}
+              options={[
+                { value: 'right', label: 'À droite du texte' },
+                { value: 'left', label: 'À gauche du texte' },
+              ]}
+              hint="Sur mobile, l’image passe sous le texte."
+              onChange={(imageSide) => onChange({ ...block, imageSide })}
+            />
+            <SelectField
+              label="Fond"
+              value={block.tone ?? 'card'}
+              options={[
+                { value: 'card', label: 'Crème' },
+                { value: 'green', label: 'Teinte verte' },
+                { value: 'blue', label: 'Teinte bleue' },
+              ]}
+              onChange={(tone) => onChange({ ...block, tone })}
+            />
+          </div>
         </>
       );
 
@@ -753,12 +833,19 @@ function Repeatable<T>({
   render: (item: T, update: (item: T) => void) => React.ReactNode;
   onChange: (items: T[]) => void;
 }) {
+  const drag = useDragSort((from, to) => onChange(moved(items, from, to)));
+
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
-        <div key={index} className="rounded-md border border-ink-100 bg-ink-50/60 p-3">
+        <div
+          key={index}
+          {...drag.itemProps(index)}
+          className={`rounded-md border border-ink-100 bg-ink-50/60 p-3 ${drag.stateClass(index)}`}
+        >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
+            <span className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-ink-500">
+              <DragHandle label={`${label} ${index + 1}`} {...drag.handleProps(index)} />
               {index + 1}
             </span>
             <ItemControls

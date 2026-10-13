@@ -59,6 +59,21 @@ export const blockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
     align: alignSchema.optional(),
   }),
   z.object({
+    type: z.literal('textImage'),
+    eyebrow: eyebrowSchema,
+    title: z.string().trim().max(200).optional(),
+    body: z.array(richSchema),
+    image: z.object({
+      url: imageUrlSchema,
+      alt: z.string().trim().min(1, 'Description de l’image obligatoire.').max(300),
+      caption: z.string().trim().max(300).optional(),
+      width: z.number().int().positive().optional(),
+      height: z.number().int().positive().optional(),
+    }),
+    imageSide: z.enum(['left', 'right']).optional(),
+    tone: z.enum(['card', 'green', 'blue']).optional(),
+  }),
+  z.object({
     type: z.literal('panels'),
     panels: z.array(panelSchema).min(1).max(3),
   }),

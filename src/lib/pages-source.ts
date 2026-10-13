@@ -2,6 +2,8 @@ import { getApps, initializeApp } from 'firebase/app';
 import {
   collection,
   connectFirestoreEmulator,
+  doc,
+  getDoc,
   getDocs,
   getFirestore,
   type Firestore,
@@ -9,6 +11,7 @@ import {
 
 import { byOrder, findBySlug, pageFromDoc, seedPages, type Page } from '@/content';
 import { pageDocSchema } from '@/content/schema';
+import { emptyTracking, TRACKING_DOC, trackingSchema, type Tracking } from '@/content/tracking';
 
 /**
  * Pages du site, lues au build.
@@ -100,4 +103,21 @@ export async function publishedPages(): Promise<Page[]> {
 
 export async function publishedPage(slug: string[] | undefined): Promise<Page | undefined> {
   return findBySlug(await publishedPages(), slug);
+}
+
+/**
+ * Identifiants de suivi (back-office › Suivi), lus au build comme les pages.
+ * Un document absent ou invalide n'empêche pas la publication : le site part
+ * simplement sans outil de mesure.
+ */
+export async function publishedTracking(): Promise<Tracking> {
+  if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) return emptyTracking;
+  const snapshot = await getDoc(doc(getBuildDb(), 'settings', TRACKING_DOC));
+  if (!snapshot.exists()) return emptyTracking;
+  const parsed = trackingSchema.safeParse(snapshot.data());
+  if (!parsed.success) {
+    console.error('[suivi] identifiants ignorés (document invalide)', parsed.error);
+    return emptyTracking;
+  }
+  return parsed.data;
 }

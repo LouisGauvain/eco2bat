@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from './PageEditor';
 import { container } from '@/components/layout/ui';
-import { pathOf } from '@/content';
-import { listPages, type PageEntry } from '@/lib/content-store';
+import { pathOf, type Page } from '@/content';
+import { CONTENT_UPDATED_EVENT, importSeedPages, listPages, type PageEntry } from '@/lib/content-store';
+import { setLivePage } from '@/lib/live-page';
 import { useIsAdmin } from '@/lib/use-content';
 
 /**
@@ -18,8 +19,10 @@ import { useIsAdmin } from '@/lib/use-content';
  * corrige un texte en le voyant dans son contexte, plutôt que dans un
  * formulaire séparé du rendu.
  *
- * Le site en ligne étant statique, ce qu'on enregistre ici ne s'y voit qu'après
- * publication ; en attendant, l'aperçu montre la version enregistrée.
+ * Chaque modification s'affiche aussitôt sur la page (`setLivePage`), et le
+ * gérant continue de voir sa version enregistrée une fois le panneau fermé. Le
+ * site en ligne étant statique, les visiteurs, eux, ne la voient qu'après
+ * publication.
  *
  * Rien n'est affiché aux visiteurs. Cacher ces outils reste du confort : c'est
  * `firestore.rules` qui empêche réellement quiconque d'écrire.
@@ -29,21 +32,55 @@ export function EditOverlay() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const bannerRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<PageEntry[]>([]);
+  const [pages, setPages] = useState<PageEntry[] | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [draft, setDraft] = useState<Page | null>(null);
+
+  const reload = useCallback(() => {
+    listPages()
+      .then((list) => setPages(list.pages))
+      .catch((error) => console.error('[contenu] lecture impossible', error));
+  }, []);
 
   // Les pages ne sont lues que pour le gérant : un visiteur ne déclenche
   // aucune requête.
   useEffect(() => {
     if (!isAdmin) return;
-    listPages()
-      .then((list) => setPages(list.pages))
-      .catch((error) => console.error('[contenu] lecture impossible', error));
-  }, [isAdmin]);
+    reload();
+    // Relu après chaque enregistrement : la page fermée garde la dernière version.
+    window.addEventListener(CONTENT_UPDATED_EVENT, reload);
+    return () => window.removeEventListener(CONTENT_UPDATED_EVENT, reload);
+  }, [isAdmin, reload]);
 
-  const page = pages.find((candidate) => pathOf(candidate) === normalize(pathname));
+  async function onImport() {
+    setImporting(true);
+    try {
+      await importSeedPages();
+      reload();
+    } catch (error) {
+      console.error('[contenu] import impossible', error);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  const page = pages?.find((candidate) => pathOf(candidate) === normalize(pathname));
 
   // Changer de page ferme le panneau : son contenu ne correspondrait plus.
   useEffect(() => setOpen(false), [pathname]);
+
+  // Panneau fermé : les modifications non enregistrées sont abandonnées.
+  useEffect(() => {
+    if (!open) setDraft(null);
+  }, [open]);
+
+  // Panneau ouvert, la page suit la saisie ; fermé, elle montre la version
+  // enregistrée, même si elle n'est pas encore publiée.
+  useEffect(() => {
+    setLivePage(isAdmin ? ((open && draft) || page || null) : null);
+  }, [isAdmin, open, draft, page]);
+
+  useEffect(() => () => setLivePage(null), []);
 
   // Le panneau pousse le contenu plutôt que de le recouvrir : la page reste
   // lisible pendant qu'on l'édite.
@@ -98,10 +135,18 @@ export function EditOverlay() {
             >
               {open ? 'Fermer l’édition' : 'Modifier cette page'}
             </button>
+          ) : pages?.length === 0 ? (
+            // Premier passage : les pages ne sont pas encore dans la base.
+            <button
+              type="button"
+              onClick={onImport}
+              disabled={importing}
+              className="rounded-md bg-leaf-600 px-3 py-1.5 font-semibold text-white hover:bg-leaf-700 disabled:bg-ink-600"
+            >
+              {importing ? 'Import…' : 'Importer les pages pour les modifier'}
+            </button>
           ) : (
-            <span className="text-ink-400">
-              {pages.length === 0 ? 'Pages à importer depuis le back-office.' : 'Cette page ne s’édite pas en ligne.'}
-            </span>
+            pages && <span className="text-ink-400">Cette page ne s’édite pas en ligne.</span>
           )}
           <Link href="/admin/" className="ml-auto text-ink-300 underline underline-offset-4 hover:text-white">
             Back-office
@@ -126,7 +171,7 @@ export function EditOverlay() {
           </header>
 
           <div className="flex-1 overflow-y-auto px-5 pt-5">
-            <PageEditor pageId={page.id} compact />
+            <PageEditor pageId={page.id} compact onDraftChange={setDraft} />
           </div>
         </aside>
       )}

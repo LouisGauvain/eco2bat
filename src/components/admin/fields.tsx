@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 /**
  * Champs de formulaire du back-office.
  *
@@ -237,6 +239,75 @@ export function AddButton({
 }
 
 /** Déplacement d'un élément dans une liste, sans muter l'original. */
+/**
+ * Glisser-déposer pour réordonner une liste. Seule la poignée (`DragHandle`)
+ * rend l'élément déplaçable : ailleurs, un glissement de souris sélectionne le
+ * texte des champs comme d'habitude. `onMove` reçoit l'ancienne et la nouvelle
+ * position ; on le branche sur `moved`.
+ */
+export function useDragSort(onMove: (from: number, to: number) => void) {
+  const [armed, setArmed] = useState<number | null>(null);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+
+  const reset = () => {
+    setArmed(null);
+    setDragging(null);
+    setOver(null);
+  };
+
+  return {
+    /** Classes de l'élément : estompé pendant qu'on le déplace, liseré vert là où il tombera. */
+    stateClass: (index: number) =>
+      dragging === index ? 'opacity-40' : over === index && dragging !== null ? 'ring-2 ring-leaf-500' : '',
+    handleProps: (index: number) => ({
+      onMouseDown: () => {
+        setArmed(index);
+        // Relâché sans glisser, où que ce soit : l'élément redevient fixe.
+        window.addEventListener('mouseup', () => setArmed(null), { once: true });
+      },
+    }),
+    // Les listes s'imbriquent (cartes d'une section) : chaque événement est
+    // arrêté ici pour ne pas déplacer aussi la section qui la contient.
+    itemProps: (index: number) => ({
+      draggable: armed === index,
+      onDragStart: (event: React.DragEvent) => {
+        event.stopPropagation();
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+        setDragging(index);
+      },
+      onDragOver: (event: React.DragEvent) => {
+        if (dragging === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setOver(index);
+      },
+      onDrop: (event: React.DragEvent) => {
+        if (dragging === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (dragging !== index) onMove(dragging, index);
+        reset();
+      },
+      onDragEnd: reset,
+    }),
+  };
+}
+
+export function DragHandle({ label, ...props }: { label: string } & React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      {...props}
+      title={`Glisser pour déplacer ${label}`}
+      aria-hidden="true"
+      className="cursor-grab select-none px-1 text-base leading-none text-ink-400 hover:text-ink-700 active:cursor-grabbing"
+    >
+      ⠿
+    </span>
+  );
+}
+
 export function moved<T>(items: T[], from: number, to: number): T[] {
   if (to < 0 || to >= items.length) return items;
   const next = [...items];

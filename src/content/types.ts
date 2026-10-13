@@ -54,6 +54,20 @@ export type Block =
       align?: Align;
     }
   /**
+   * Texte à côté d'une image, dans une carte : l'image à droite par défaut,
+   * à gauche avec `imageSide: 'left'`. Sur mobile, l'image passe sous le texte.
+   * `tone` reprend les fonds des autres cartes (crème, teinte verte ou bleue).
+   */
+  | {
+      type: 'textImage';
+      eyebrow?: string;
+      title?: string;
+      body: Rich[];
+      image: { url: string; alt: string; caption?: string; width?: number; height?: number };
+      imageSide?: 'left' | 'right';
+      tone?: 'card' | 'green' | 'blue';
+    }
+  /**
    * Deux ou trois cartes côte à côte, chacune avec son surtitre : « Les bons
    * moments » / « La bonne méthode ». Sur mobile elles s'empilent.
    */

@@ -29,8 +29,8 @@ npm run dev                  # http://localhost:3000
 4. **Déployer les règles** : `npm run deploy:rules`. À faire avant la première
    utilisation, sinon toutes les écritures seront refusées.
 
-5. **Importer les pages** : se connecter à `/admin/contenu/` et cliquer
-   « Importer les pages ». Tant que la collection `pages` est vide, le site est
+5. **Importer les pages** : se connecter à `/admin/`, ouvrir le site et cliquer
+   « Importer les pages pour les modifier » dans la barre du bas. Tant que la collection `pages` est vide, le site est
    construit à partir des fichiers de `src/content/pages/`.
 
 ### Publication depuis le back-office
@@ -93,6 +93,7 @@ src/
     site.ts         Coordonnées, zone d'intervention, menu d'origine
     types.ts        Modèle de page et de blocs
     schema.ts       Validation Zod d'une page (back-office et build)
+    tracking.ts     Identifiants de suivi (GTM, GA4, Meta, Search Console)
     pages/          Pages d'origine, copiées dans Firestore à l'import
     index.ts        Fonctions sur les pages : menu, fil d'Ariane, import
   app/
@@ -121,15 +122,14 @@ src/
 
 | Ce qu'on veut changer | Où |
 |---|---|
-| Le texte, les images, le titre et la description Google d'une page | back-office `/admin/contenu/`, puis « Publier » |
-| Les mots-clés d'une page | back-office, section « Référencement » (vérifie leur présence dans la page) |
-| Créer, dupliquer, supprimer une page, changer son adresse | back-office — les redirections 301 sont créées automatiquement |
-| Le menu (pages affichées, ordre) | back-office : case « Afficher dans le menu », flèches de la liste |
+| Le texte, les images, le titre et la description Google d'une page | sur le site, connecté : « Modifier cette page » dans la barre du bas, puis « Publier » dans le back-office |
+| Créer ou supprimer une page, son adresse, son statut, le menu | plus proposé au client : directement dans la collection Firestore `pages` (champ `order` pour le menu), ou restaurer l'ancien onglet « Contenu » depuis git (commit a26da9d) |
 | Téléphone, adresse, zone d'intervention | back-office `/admin/entreprise/` (valeurs d'origine : `src/content/site.ts`) |
 | Une redirection écrite à la main | `firebase.json` (section `redirects`) |
 | Un nouveau type de bloc | `content/types.ts`, `content/schema.ts`, `components/content/Blocks.tsx`, `components/admin/BlockEditor.tsx` |
 | Les en-têtes HTTP, le cache | `firebase.json` (section `headers`) |
 | Qui peut lire ou écrire quoi | `firestore.rules` |
+| Google Tag Manager, Analytics, pixel Meta, Search Console | back-office `/admin/suivi/`, puis « Publier » |
 | Un bandeau, le délai de réponse annoncé | back-office `/admin/parametres/` |
 
 **Firestore est la source, le build la met en ligne.** Les pages vivent dans
@@ -145,3 +145,7 @@ le lien vers le journal GitHub.
 
 L'accueil et la page Contact ont une route dédiée dans `src/app` : leur
 adresse est fixe et ils ne peuvent être ni supprimés ni dépubliés.
+
+**Suivi** : les outils renseignés dans `/admin/suivi/` ne sont chargés
+qu'après consentement (bandeau cookies : « Mesure d'audience » pour Tag
+Manager et Analytics, « Publicité » pour le pixel Meta).

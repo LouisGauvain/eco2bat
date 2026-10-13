@@ -26,8 +26,12 @@ export function AdminGate({
   title: string;
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
+  // D'une page du back-office à l'autre, la session est déjà restaurée : on
+  // l'utilise tout de suite plutôt que de réafficher « Chargement… ».
+  const [user, setUser] = useState<User | null>(() =>
+    typeof window === 'undefined' ? null : getClientAuth().currentUser,
+  );
+  const [ready, setReady] = useState(user !== null);
 
   useEffect(() => {
     // Firebase restaure la session depuis le stockage local : tant que ce
@@ -59,16 +63,12 @@ export function AdminGate({
 
           <nav aria-label="Navigation de l’administration" className="flex gap-1">
             <AdminLink href="/admin/">Demandes</AdminLink>
-            <AdminLink href="/admin/contenu/">Contenu</AdminLink>
             <AdminLink href="/admin/entreprise/">Entreprise</AdminLink>
             <AdminLink href="/admin/parametres/">Paramètres</AdminLink>
+            <AdminLink href="/admin/suivi/">Suivi</AdminLink>
           </nav>
 
           <div className="ml-auto flex items-center gap-3 text-sm">
-            <PublishControl />
-            <Link href="/" className="text-ink-500 hover:text-ink-800">
-              Voir le site
-            </Link>
             <span className="hidden text-ink-400 sm:inline">{user.email}</span>
             <button
               type="button"
@@ -77,6 +77,15 @@ export function AdminGate({
             >
               Déconnexion
             </button>
+          </div>
+        </div>
+
+        <div className="border-t border-ink-100">
+          <div className={`${container} flex flex-wrap items-center justify-end gap-4 py-2 text-sm`}>
+            <Link href="/" target="_blank" rel="noreferrer" className="text-ink-500 hover:text-ink-800">
+              Voir et modifier le site ↗
+            </Link>
+            <PublishControl />
           </div>
         </div>
       </header>

@@ -8,17 +8,31 @@ import { btnPrimary, btnSecondary, card } from '@/components/layout/ui';
 
 /**
  * Bandeau de consentement : tout accepter, tout refuser, ou choisir finalité
- * par finalité. Le choix est conservé dans le navigateur et lisible via
- * `hasCookieConsent('newsletter')`. Le site ne dépose aujourd'hui aucun cookie
- * de mesure ni de publicité ; la seule finalité soumise au consentement est la
- * conservation de l'e-mail pour les actualités. Pour ajouter une finalité
- * (mesure d'audience…), compléter `CATEGORIES`, `NONE` et `ALL`.
+ * par finalité. Le choix est conservé dans le navigateur, lisible via
+ * `hasCookieConsent` et annoncé par l'événement `cookie-consent`.
+ *
+ * Les finalités « Mesure d'audience » et « Publicité » ne sont proposées que si
+ * un outil correspondant est renseigné dans le back-office (Suivi) : on ne
+ * demande pas un consentement pour un outil absent.
  */
 
 const STORAGE_KEY = 'eco2bat-cookies';
 
+/** Événement émis à chaque choix du visiteur. */
+export const CONSENT_EVENT = 'cookie-consent';
+
 /** Finalités soumises au consentement (les cookies nécessaires n'en ont pas besoin). */
 const CATEGORIES = [
+  {
+    id: 'analytics',
+    name: 'Mesure d’audience',
+    description: 'Comprendre quelles pages sont consultées, pour améliorer le site (statistiques anonymes).',
+  },
+  {
+    id: 'marketing',
+    name: 'Publicité',
+    description: 'Mesurer l’efficacité de nos annonces sur les réseaux sociaux.',
+  },
   {
     id: 'newsletter',
     name: 'Actualités par e-mail',
@@ -27,13 +41,13 @@ const CATEGORIES = [
   },
 ] as const;
 
-type Category = (typeof CATEGORIES)[number]['id'];
-type Consent = Record<Category, boolean>;
+export type ConsentCategory = (typeof CATEGORIES)[number]['id'];
+type Consent = Record<ConsentCategory, boolean>;
 
-const NONE: Consent = { newsletter: false };
-const ALL: Consent = { newsletter: true };
+const NONE: Consent = { analytics: false, marketing: false, newsletter: false };
+const ALL: Consent = { analytics: true, marketing: true, newsletter: true };
 
-function readConsent(): Consent | null {
+export function readConsent(): Consent | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? { ...NONE, ...JSON.parse(raw) } : null;
@@ -42,12 +56,33 @@ function readConsent(): Consent | null {
   }
 }
 
+/** Finalités sur lesquelles le visiteur s'est déjà prononcé. */
+function rawConsentKeys(): string[] {
+  try {
+    return Object.keys(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'));
+  } catch {
+    return [];
+  }
+}
+
 /** `true` si le visiteur a accepté cette catégorie de cookies. */
-export function hasCookieConsent(category: Category): boolean {
+export function hasCookieConsent(category: ConsentCategory): boolean {
   return readConsent()?.[category] ?? false;
 }
 
-export function CookieBanner() {
+export function CookieBanner({
+  analytics = false,
+  marketing = false,
+}: {
+  /** Un outil de mesure d'audience est configuré. */
+  analytics?: boolean;
+  /** Un outil publicitaire est configuré. */
+  marketing?: boolean;
+}) {
+  const categories = CATEGORIES.filter(
+    (category) => category.id === 'newsletter' || (category.id === 'analytics' ? analytics : marketing),
+  );
+
   // Rendu côté serveur sans bandeau ; on ne l'affiche qu'une fois le choix
   // du navigateur connu, pour éviter un clignotement au chargement.
   const [visible, setVisible] = useState(false);
@@ -59,8 +94,13 @@ export function CookieBanner() {
 
   useEffect(() => {
     setMounted(true);
-    if (!readConsent()) setVisible(true);
-  }, []);
+    // Aussi redemandé quand un outil a été ajouté depuis le dernier choix.
+    const stored = readConsent();
+    const raw = stored ? rawConsentKeys() : [];
+    if (!stored || (analytics && !raw.includes('analytics')) || (marketing && !raw.includes('marketing'))) {
+      setVisible(true);
+    }
+  }, [analytics, marketing]);
 
   function save(consent: Consent) {
     try {
@@ -68,7 +108,7 @@ export function CookieBanner() {
     } catch {
       // Sans stockage, le bandeau reviendra à la prochaine visite.
     }
-    window.dispatchEvent(new CustomEvent('cookie-consent', { detail: consent }));
+    window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: consent }));
     setVisible(false);
     setCustom(false);
   }
@@ -104,8 +144,11 @@ export function CookieBanner() {
       className={`${card} fixed bottom-24 left-4 z-50 w-[calc(100%-2rem)] max-w-sm p-5 shadow-lg sm:bottom-4`}
     >
       <p className="text-sm leading-relaxed text-ink-700">
-        Ce site n&apos;utilise que des cookies nécessaires à son fonctionnement.
-        Si vous nous contactez, nous pouvons conserver votre e-mail pour vous
+        {analytics || marketing
+          ? 'Avec votre accord, nous utilisons des cookies pour mesurer l’audience du site'
+          : 'Ce site n’utilise que des cookies nécessaires à son fonctionnement'}
+        {marketing ? ' et l’efficacité de nos annonces. ' : '. '}
+        Si vous nous contactez, nous pouvons aussi conserver votre e-mail pour vous
         envoyer nos actualités : à vous de choisir.{' '}
         <Link
           href="/politique-de-confidentialite"
@@ -126,7 +169,7 @@ export function CookieBanner() {
               </p>
             </div>
           </li>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <li key={c.id}>
               <label className="flex cursor-pointer gap-3">
                 <input

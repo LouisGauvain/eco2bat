@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { Source_Code_Pro, Source_Sans_3, Source_Serif_4 } from 'next/font/google';
 
 import './globals.css';
+import { fontVariables } from './fonts';
 import { site, siteUrl } from '@/content/site';
+import { publishedTracking } from '@/lib/pages-source';
 
 /**
  * Layout racine : uniquement le document HTML et les polices.
@@ -11,51 +12,35 @@ import { site, siteUrl } from '@/content/site';
  * le back-office, qui a sa propre interface, ne les hérite pas.
  */
 
-// Source Sans 3 pour le texte courant : ses chiffres et ses sigles (DPE,
-// RT 2012, kWh/m².an) restent nets aux petites tailles.
-const sans = Source_Sans_3({
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  display: 'swap',
-  variable: '--font-source-sans',
-});
-
-// Source Serif 4 porte les titres : même dessin de base que la sans.
-const display = Source_Serif_4({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-source-serif',
-});
-
-// Source Code Pro pour les numéros des cartes (01, 02…) et les chiffres clés.
-const mono = Source_Code_Pro({
-  subsets: ['latin'],
-  weight: ['500', '600'],
-  display: 'swap',
-  variable: '--font-source-mono',
-});
-
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: `${site.name} — ${site.tagline}`,
-    template: '%s',
-  },
-  description: site.tagline,
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.png', type: 'image/png' },
-    ],
-  },
-  formatDetection: { telephone: true },
-};
+/**
+ * Métadonnées communes. Le code de validation Search Console, renseigné dans
+ * le back-office (Suivi), est lu au build comme le contenu des pages.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { googleVerification } = await publishedTracking();
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: `${site.name} — ${site.tagline}`,
+      template: '%s',
+    },
+    description: site.tagline,
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/favicon.png', type: 'image/png' },
+      ],
+    },
+    formatDetection: { telephone: true },
+    ...(googleVerification ? { verification: { google: googleVerification } } : {}),
+  };
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="fr" className={fontVariables}>
       <body>{children}</body>
     </html>
   );

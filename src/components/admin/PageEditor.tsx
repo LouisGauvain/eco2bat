@@ -4,19 +4,19 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { BlockList } from './BlockEditor';
-import { CheckboxField, Field, SelectField, TextField } from './fields';
+import { Field, TextField } from './fields';
 import { ImageField } from './ImageField';
 import { SeoPanel } from './SeoPanel';
 import { Toast } from './Toast';
-import { docFromPage, pathOf, type Page } from '@/content';
+import { docFromPage, type Page } from '@/content';
 import { pageDocSchema } from '@/content/schema';
-import type { Block, PageStatus } from '@/content/types';
+import type { Block } from '@/content/types';
 import { ContentError, getPage, savePage } from '@/lib/content-store';
 
 /**
- * Éditeur d'une page, partagé par le back-office et l'édition depuis le site
- * public — pour que les deux chemins produisent exactement le même contenu et
- * les mêmes validations.
+ * Éditeur d'une page, ouvert depuis le site public (`EditOverlay`). Le gérant
+ * n'y modifie que le contenu et le référencement de la page : adresse, statut
+ * et menu restent hors de sa portée.
  *
  * Enregistrer écrit dans Firestore ; le site en ligne ne change qu'à la
  * publication. Entre les deux, l'aperçu montre la version enregistrée.
@@ -24,27 +24,21 @@ import { ContentError, getPage, savePage } from '@/lib/content-store';
 
 type Status = 'loading' | 'missing' | 'idle' | 'saving' | 'error';
 
-const STATUS_OPTIONS: { value: PageStatus; label: string }[] = [
-  { value: 'draft', label: 'Brouillon — pas en ligne' },
-  { value: 'published', label: 'Publiée — en ligne à la prochaine publication' },
-];
-
 export function PageEditor({
   pageId,
   compact = false,
+  onDraftChange,
 }: {
   pageId: string;
   /** Mise en page resserrée pour le panneau d'édition sur le site. */
   compact?: boolean;
+  /** Reçoit la page telle qu'elle serait enregistrée, à chaque modification. */
+  onDraftChange?: (page: Page) => void;
 }) {
   const [original, setOriginal] = useState<Page | null>(null);
   const [draft, setDraft] = useState<Page | null>(null);
-  const [slugText, setSlugText] = useState('');
   const [status, setStatus] = useState<Status>('loading');
   const [message, setMessage] = useState('');
-  // Change à chaque « Annuler » : remonte les champs qui gardent leur propre
-  // saisie (mots-clés).
-  const [resets, setResets] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -55,7 +49,6 @@ export function PageEditor({
         if (!active) return;
         setOriginal(page);
         setDraft(page);
-        setSlugText(page?.slug.join('/') ?? '');
         setStatus(page ? 'idle' : 'missing');
         setMessage('');
       })
@@ -69,6 +62,10 @@ export function PageEditor({
     };
   }, [pageId]);
 
+  useEffect(() => {
+    if (draft) onDraftChange?.(normalize(draft));
+  }, [draft, onDraftChange]);
+
   if (status === 'loading') {
     return <p className="text-sm text-ink-400">Chargement de la page…</p>;
   }
@@ -79,9 +76,6 @@ export function PageEditor({
   const page = draft;
   const loaded = original;
   const dirty = JSON.stringify(page) !== JSON.stringify(original);
-  // L'accueil et les pages à route dédiée (Contact) ont une adresse fixée dans
-  // le code : la changer produirait une page vide.
-  const slugLocked = original.slug.length === 0 || Boolean(original.customRoute);
 
   function update(patch: Partial<Page>) {
     setDraft((current) => (current ? { ...current, ...patch } : current));
@@ -102,15 +96,10 @@ export function PageEditor({
     setMessage(''); // relance l'animation du toast même si le texte est identique
     try {
       await savePage(next, loaded);
-      const moved = loaded.status === 'published' && pathOf(loaded) !== pathOf(next);
       setOriginal(next);
       setDraft(next);
       setStatus('idle');
-      setMessage(
-        moved
-          ? `Enregistré. Redirection créée de ${pathOf(loaded)} vers ${pathOf(next)}. Cliquez « Publier » pour mettre en ligne.`
-          : 'Enregistré. Cliquez « Publier » pour mettre en ligne.',
-      );
+      setMessage('Enregistré. Cliquez « Publier » pour mettre en ligne.');
     } catch (error) {
       console.error('[contenu] enregistrement impossible', error);
       setStatus('error');
@@ -124,87 +113,17 @@ export function PageEditor({
     <div className={compact ? 'space-y-6' : 'max-w-3xl space-y-8'}>
       <Toast message={message} tone={status === 'error' ? 'error' : 'success'} />
 
-      <Section title="Page et menu" compact={compact}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <SelectField
-            label="Statut"
-            value={page.status}
-            options={STATUS_OPTIONS}
-            disabled={slugLocked}
-            hint={slugLocked ? 'Cette page est indispensable au site : elle reste publiée.' : undefined}
-            onChange={(value) => update({ status: value })}
-          />
-          <label className="block">
-            <span className="text-sm font-medium text-ink-800">Adresse</span>
-            <span className="mt-1 flex items-center rounded-md border border-ink-200 text-sm focus-within:border-leaf-500">
-              <span className="pl-3 text-ink-400">/</span>
-              <input
-                type="text"
-                value={slugLocked ? original.slug.join('/') : slugText}
-                disabled={slugLocked}
-                onChange={(event) => {
-                  const text = event.target.value.toLowerCase().replace(/\s+/g, '-');
-                  setSlugText(text);
-                  update({ slug: text.split('/').filter(Boolean) });
-                }}
-                className="w-full rounded-md py-2 pr-3 text-ink-900 focus:outline-none disabled:bg-ink-50 disabled:text-ink-400"
-              />
-              <span className="pr-3 text-ink-400">/</span>
-            </span>
-            <span className="mt-1 block text-xs text-ink-500">
-              {slugLocked
-                ? 'Adresse fixe.'
-                : original.status === 'published'
-                  ? 'Changer l’adresse crée automatiquement une redirection depuis l’ancienne.'
-                  : 'Minuscules, chiffres et tirets.'}
-            </span>
-          </label>
-        </div>
+      <Section title="Référencement" compact={compact}>
+        <SeoPanel page={page} onChange={(seo) => update({ seo })} />
+      </Section>
 
+      <Section title="Titre et accroche" compact={compact}>
         <Field
           label="Titre affiché (H1)"
           value={page.title}
           maxLength={200}
           onChange={(title) => update({ title })}
         />
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            label="Libellé court (menu, fil d’Ariane)"
-            value={page.navLabel}
-            maxLength={60}
-            onChange={(navLabel) => update({ navLabel })}
-          />
-          <Field
-            label="Intitulé complet (pied de page)"
-            value={page.navTitle ?? ''}
-            maxLength={120}
-            placeholder={page.title}
-            onChange={(navTitle) => update({ navTitle })}
-          />
-        </div>
-
-        <div className="space-y-3">
-          <CheckboxField
-            label="Afficher dans le menu principal"
-            checked={Boolean(page.showInNav)}
-            hint="L’ordre du menu se règle dans la liste des pages."
-            onChange={(showInNav) => update({ showInNav })}
-          />
-          <CheckboxField
-            label="Ne pas référencer cette page"
-            checked={Boolean(page.noindex)}
-            hint="La page reste accessible mais Google ne l’indexe pas (mentions légales, page en préparation)."
-            onChange={(noindex) => update({ noindex })}
-          />
-        </div>
-      </Section>
-
-      <Section title="Référencement" compact={compact}>
-        <SeoPanel key={resets} page={page} onChange={(seo) => update({ seo })} />
-      </Section>
-
-      <Section title="Accroche et boutons" compact={compact}>
         <TextField
           label="Accroche sous le titre"
           rows={4}
@@ -364,8 +283,6 @@ export function PageEditor({
               type="button"
               onClick={() => {
                 setDraft(original);
-                setSlugText(original.slug.join('/'));
-                setResets((value) => value + 1);
               }}
               disabled={status === 'saving'}
               className="rounded-md border border-ink-200 px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
@@ -464,6 +381,13 @@ function normalize(page: Page): Page {
             eyebrow: blank(block.eyebrow),
             title: blank(block.title),
             lead: blank(block.lead),
+          };
+        case 'textImage':
+          return {
+            ...block,
+            eyebrow: blank(block.eyebrow),
+            title: blank(block.title),
+            image: { ...block.image, caption: blank(block.image.caption) },
           };
         case 'panels':
           return {

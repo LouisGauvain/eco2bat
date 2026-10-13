@@ -47,7 +47,7 @@ export function PagePreview() {
               ? 'Brouillon — cette page n’est pas en ligne.'
               : 'Version enregistrée — en ligne après publication.'}
           </span>
-          <Link href="/admin/contenu/" className="ml-auto text-ink-300 underline underline-offset-4 hover:text-white">
+          <Link href="/admin/" className="ml-auto text-ink-300 underline underline-offset-4 hover:text-white">
             Back-office
           </Link>
         </div>
