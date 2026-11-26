@@ -1,4 +1,4 @@
-import { EditOverlay } from '@/components/admin/EditOverlay';
+import { EditOverlayLoader } from '@/components/admin/EditOverlayLoader';
 import { ContactWidget } from '@/components/contact/ContactWidget';
 import { Banner } from '@/components/layout/Banner';
 import { CookieBanner } from '@/components/layout/CookieBanner';
@@ -30,8 +30,8 @@ export default async function SiteLayout({
       <Tracking ids={tracking} />
       {/* Formulaire de contact, accessible depuis toutes les pages. */}
       <ContactWidget />
-      {/* Outils d'édition, affichés uniquement au gérant connecté. */}
-      <EditOverlay />
+      {/* Outils d'édition, téléchargés et affichés uniquement chez le gérant. */}
+      <EditOverlayLoader />
       {/* Données structurées de l'entreprise : décrites une seule fois, elles
           alimentent le référencement local. */}
       <script

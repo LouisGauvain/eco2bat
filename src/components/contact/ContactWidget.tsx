@@ -1,9 +1,19 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 
-import { ContactForm } from './ContactForm';
+/**
+ * Le formulaire (et Zod, qui le valide) n'est téléchargé qu'à l'ouverture du
+ * widget : la plupart des visiteurs ne l'ouvrent pas, et chaque Ko économisé
+ * au chargement compte pour les Core Web Vitals.
+ */
+const ContactForm = dynamic(() => import('./ContactForm').then((module) => module.ContactForm), {
+  ssr: false,
+  loading: () => <p className="py-8 text-center text-sm text-ink-400">Chargement du formulaire…</p>,
+});
+
 import { eyebrow } from '@/components/layout/ui';
 import { useCompany } from '@/lib/use-content';
 

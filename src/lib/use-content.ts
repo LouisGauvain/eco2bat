@@ -1,22 +1,17 @@
 'use client';
 
-import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
-import {
-  CONTENT_UPDATED_EVENT,
-  defaultCompany,
-  getCompany,
-} from './content-store';
-import { getClientAuth } from './firebase/client';
+import { CONTENT_UPDATED_EVENT, defaultCompany, getCompany } from './public-store';
 import type { Company } from '@/content/schema';
 
 /**
- * Lectures côté navigateur : coordonnées de l'entreprise, modifiables en ligne
- * sans republier, et état de connexion du gérant.
- *
- * Les pages, elles, ne se lisent plus ici : elles sont construites au build
+ * Coordonnées de l'entreprise, lues dans le navigateur : elles se modifient en
+ * ligne sans republier. Les pages, elles, sont construites au build
  * (`pages-source.ts`).
+ *
+ * Ce module est chargé par tout le site public : il passe par `public-store`
+ * (Firestore « lite ») et ne doit importer ni `firebase/auth` ni le SDK complet.
  */
 
 /** Incrémenté à chaque sauvegarde, pour relancer les lectures en cours de page. */
@@ -47,21 +42,4 @@ export function useCompany(): Company {
   }, [version]);
 
   return company;
-}
-
-/**
- * Vrai quand un compte est connecté. Aucune inscription n'étant ouverte, être
- * authentifié vaut « c'est le gérant » — c'est ce qui déclenche l'affichage
- * des outils d'édition sur le site public. La sécurité reste dans les règles
- * Firestore : afficher ou non un bouton ne protège rien.
- */
-export function useIsAdmin(): boolean {
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(
-    () => onAuthStateChanged(getClientAuth(), (user) => setIsAdmin(user !== null)),
-    [],
-  );
-
-  return isAdmin;
 }

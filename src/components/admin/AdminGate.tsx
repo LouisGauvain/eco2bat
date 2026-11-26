@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { PublishControl } from './PublishControl';
 import { container } from '@/components/layout/ui';
 import { getClientAuth } from '@/lib/firebase/client';
+import { setAdminHint } from '@/lib/public-store';
 
 /**
  * Barrière d'accès au back-office.
@@ -40,6 +41,9 @@ export function AdminGate({
     return onAuthStateChanged(getClientAuth(), (current) => {
       setUser(current);
       setReady(true);
+      // Indique au site public de charger les outils d'édition sur ce
+      // navigateur (voir `EditOverlayLoader`).
+      setAdminHint(current !== null);
     });
   }, []);
 

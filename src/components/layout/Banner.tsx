@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from 'react';
 
-import { getSettings } from '@/lib/settings';
+import { getSettings } from '@/lib/public-store';
 
 /** Mémoire locale du dernier bandeau connu. */
 const CACHE_KEY = 'eco2bat:banner';

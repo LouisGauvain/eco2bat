@@ -50,6 +50,9 @@ function getBuildDb(): Firestore {
   return db;
 }
 
+/** Date du dernier enregistrement de chaque page, par identifiant. */
+const lastModified = new Map<string, Date>();
+
 async function load(): Promise<Page[]> {
   if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
     // En intégration continue, publier les pages d'origine à la place du
@@ -77,6 +80,11 @@ async function load(): Promise<Page[]> {
       );
     }
     pages.push(pageFromDoc(document.id, parsed.data));
+    // `updatedAt` est posé par le back-office à chaque enregistrement.
+    const updatedAt = data.updatedAt as { toDate?: () => Date } | undefined;
+    if (typeof updatedAt?.toDate === 'function') {
+      lastModified.set(document.id, updatedAt.toDate());
+    }
   }
 
   // Collection pas encore importée depuis le back-office.
@@ -99,6 +107,15 @@ function allPages(): Promise<Page[]> {
 /** Pages mises en ligne : les brouillons n'ont ni URL, ni menu, ni sitemap. */
 export async function publishedPages(): Promise<Page[]> {
   return (await allPages()).filter((page) => page.status === 'published');
+}
+
+/**
+ * Dernier enregistrement d'une page dans le back-office. `undefined` pour une
+ * page d'origine jamais enregistrée : mieux vaut aucune date qu'une fausse.
+ */
+export async function pageLastModified(page: Page): Promise<Date | undefined> {
+  await allPages();
+  return lastModified.get(page.id);
 }
 
 export async function publishedPage(slug: string[] | undefined): Promise<Page | undefined> {

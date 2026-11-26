@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PageView } from '@/components/content/PageView';
 import { breadcrumbFor, contentRoutePages } from '@/content';
 import { publishedPage, publishedPages } from '@/lib/pages-source';
-import { breadcrumbJsonLd, faqJsonLd, jsonLdScript, metadataFor } from '@/lib/seo';
+import { breadcrumbJsonLd, faqJsonLd, jsonLdScript, metadataFor, serviceJsonLd } from '@/lib/seo';
 
 /**
  * Route générique du site public : chaque page publiée depuis le back-office
@@ -42,6 +42,7 @@ export default async function ContentPage({
   if (!page || page.customRoute) notFound();
 
   const faq = faqJsonLd(page);
+  const service = serviceJsonLd(page);
 
   return (
     <>
@@ -56,6 +57,12 @@ export default async function ContentPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(faq) }}
+        />
+      )}
+      {service && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(service) }}
         />
       )}
     </>

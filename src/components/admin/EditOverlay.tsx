@@ -2,14 +2,36 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from './PageEditor';
 import { container } from '@/components/layout/ui';
 import { pathOf, type Page } from '@/content';
 import { CONTENT_UPDATED_EVENT, importSeedPages, listPages, type PageEntry } from '@/lib/content-store';
+import { getClientAuth } from '@/lib/firebase/client';
 import { setLivePage } from '@/lib/live-page';
-import { useIsAdmin } from '@/lib/use-content';
+import { setAdminHint } from '@/lib/public-store';
+
+/**
+ * Vrai quand un compte est connecté. Aucune inscription n'étant ouverte, être
+ * authentifié vaut « c'est le gérant ». Une session expirée efface l'indice
+ * posé à la connexion : la visite suivante ne rechargera plus ces outils.
+ */
+function useIsAdmin(): boolean {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(
+    () =>
+      onAuthStateChanged(getClientAuth(), (user) => {
+        setIsAdmin(user !== null);
+        setAdminHint(user !== null);
+      }),
+    [],
+  );
+
+  return isAdmin;
+}
 
 /**
  * Édition en direct depuis le site public.

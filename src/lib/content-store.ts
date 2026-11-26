@@ -14,9 +14,14 @@ import {
 } from 'firebase/firestore';
 
 import { collections, getDb } from './firebase/client';
+import {
+  COMPANY_DOC,
+  CONTENT_UPDATED_EVENT,
+  defaultCompany,
+  getCompany,
+} from './public-store';
 import { docFromPage, pageFromDoc, pathOf, seedPages, byOrder, type Page } from '@/content';
-import { companySchema, pageDocSchema, type Company } from '@/content/schema';
-import { site } from '@/content/site';
+import { pageDocSchema, type Company } from '@/content/schema';
 
 /**
  * Contenu du site, édité depuis le back-office.
@@ -310,32 +315,8 @@ export async function lastContentChange(): Promise<number | null> {
 
 // ─── Entreprise ──────────────────────────────────────────────────────────────
 
-const COMPANY_DOC = 'company';
-
-/** Informations d'entreprise du dépôt — valeurs par défaut de l'éditeur. */
-export const defaultCompany: Company = {
-  name: site.name,
-  legalName: site.legalName,
-  tagline: site.tagline,
-  owner: { ...site.owner },
-  contact: { ...site.contact },
-  address: { ...site.address },
-  serviceArea: [...site.serviceArea],
-  responseTime: site.responseTime,
-};
-
-export async function getCompany(): Promise<Company> {
-  try {
-    const snapshot = await getDoc(doc(getDb(), collections.settings, COMPANY_DOC));
-    if (!snapshot.exists()) return defaultCompany;
-
-    const parsed = companySchema.safeParse(snapshot.data());
-    return parsed.success ? parsed.data : defaultCompany;
-  } catch (error) {
-    console.error('[entreprise] lecture impossible', error);
-    return defaultCompany;
-  }
-}
+// Lecture et valeurs par défaut : dans `public-store`, partagées avec le site.
+export { defaultCompany, getCompany };
 
 export async function saveCompany(company: Company): Promise<void> {
   await setDoc(doc(getDb(), collections.settings, COMPANY_DOC), {
@@ -350,12 +331,7 @@ export async function saveCompany(company: Company): Promise<void> {
 /** Erreur à montrer telle quelle à l'utilisateur. */
 export class ContentError extends Error {}
 
-/**
- * Signal de rafraîchissement : après une sauvegarde, les composants déjà
- * affichés (liste des pages, bouton de publication, coordonnées sur le site)
- * relisent la base sans recharger la page.
- */
-export const CONTENT_UPDATED_EVENT = 'eco2bat:content-updated';
+export { CONTENT_UPDATED_EVENT };
 
 function notifyContentUpdated() {
   if (typeof window !== 'undefined') {

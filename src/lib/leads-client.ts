@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -15,7 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { collections, getDb } from './firebase/client';
-import type { Lead, LeadInput, LeadStatus } from './leads';
+import type { Lead, LeadStatus } from './leads';
 
 /**
  * Accès aux demandes de contact depuis le navigateur.
@@ -32,24 +31,8 @@ function toIso(value: unknown): string {
   return new Date().toISOString();
 }
 
-/** Dépôt d'une demande depuis le formulaire public. */
-export async function createLead(input: LeadInput): Promise<string> {
-  // Le consentement n'est pas stocké comme booléen : sa preuve est
-  // l'horodatage `consentAt`.
-  const { consent, ...data } = input;
-  void consent;
-
-  const created = await addDoc(collection(getDb(), collections.leads), {
-    ...data,
-    phone: data.phone || null,
-    message: data.message || null,
-    status: 'nouveau' satisfies LeadStatus,
-    createdAt: serverTimestamp(),
-    consentAt: serverTimestamp(),
-  });
-
-  return created.id;
-}
+// Le dépôt d'une demande depuis le formulaire public vit dans `public-store` :
+// il ne doit pas embarquer le SDK complet chez chaque visiteur.
 
 /** Liste des demandes, les plus récentes d'abord. Réservé au back-office. */
 export async function listLeads(): Promise<Lead[]> {

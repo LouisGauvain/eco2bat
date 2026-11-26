@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { markContentChanged } from './content-store';
 import { collections, getDb } from './firebase/client';
+import { defaultSettings, getSettings, SETTINGS_DOC, type Settings } from './public-store';
 import { emptyTracking, TRACKING_DOC, trackingSchema, type Tracking } from '@/content/tracking';
 
 /**
@@ -19,42 +20,19 @@ import { emptyTracking, TRACKING_DOC, trackingSchema, type Tracking } from '@/co
  * utilisateur authentifié — voir `firestore.rules`.
  */
 
+// Lecture et valeurs par défaut : dans `public-store`, le bandeau du site les
+// utilise aussi. La validation complète reste ici, côté back-office.
+export { defaultSettings, getSettings, type Settings };
+
 export const settingsSchema = z.object({
-  /** Bandeau affiché en haut du site — congés, délai exceptionnel, annonce. */
   bannerEnabled: z.boolean(),
   bannerText: z.string().trim().max(240),
-  /** Délai de réponse annoncé, s'il diffère de la valeur par défaut. */
   responseTime: z.string().trim().max(120),
-});
-
-export type Settings = z.infer<typeof settingsSchema>;
-
-export const defaultSettings: Settings = {
-  bannerEnabled: false,
-  bannerText: '',
-  responseTime: '',
-};
-
-const DOC = 'site';
-
-export async function getSettings(): Promise<Settings> {
-  try {
-    const snapshot = await getDoc(doc(getDb(), collections.settings, DOC));
-    if (!snapshot.exists()) return defaultSettings;
-
-    const parsed = settingsSchema.safeParse(snapshot.data());
-    // Un document mal formé ne doit pas casser l'affichage du site public :
-    // on retombe silencieusement sur les valeurs par défaut.
-    return parsed.success ? parsed.data : defaultSettings;
-  } catch (error) {
-    console.error('[settings] lecture impossible', error);
-    return defaultSettings;
-  }
-}
+}) satisfies z.ZodType<Settings>;
 
 export async function saveSettings(settings: Settings): Promise<void> {
   await setDoc(
-    doc(getDb(), collections.settings, DOC),
+    doc(getDb(), collections.settings, SETTINGS_DOC),
     { ...settings, updatedAt: serverTimestamp() },
     { merge: true },
   );

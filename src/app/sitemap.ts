@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { isIndexable, pathOf } from '@/content';
 import { siteUrl } from '@/content/site';
-import { publishedPages } from '@/lib/pages-source';
+import { pageLastModified, publishedPages } from '@/lib/pages-source';
 
 /**
  * `force-static` est requis par `output: 'export'` : le fichier est généré une
@@ -18,12 +18,19 @@ export const dynamic = 'force-static';
  * brouillons et les pages marquées « hors index ».
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const lastModified = new Date();
+  const pages = (await publishedPages()).filter(isIndexable);
 
-  return (await publishedPages()).filter(isIndexable).map((page) => ({
-    url: `${siteUrl}${pathOf(page)}`,
-    lastModified,
-    changeFrequency: 'monthly',
-    priority: page.sitemapPriority ?? 0.5,
-  }));
+  // Date du dernier enregistrement de la page, et non celle du build : une
+  // date qui change à chaque publication finit par être ignorée par Google.
+  return Promise.all(
+    pages.map(async (page) => {
+      const lastModified = await pageLastModified(page);
+      return {
+        url: `${siteUrl}${pathOf(page)}`,
+        ...(lastModified ? { lastModified } : {}),
+        changeFrequency: 'monthly' as const,
+        priority: page.sitemapPriority ?? 0.5,
+      };
+    }),
+  );
 }

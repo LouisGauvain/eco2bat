@@ -122,6 +122,27 @@ export function organizationJsonLd() {
   };
 }
 
+/**
+ * Prestation décrite par une page de mission (celles du menu principal),
+ * rattachée à la fiche de l'entreprise par son `@id` plutôt que redécrite.
+ */
+export function serviceJsonLd(page: Page) {
+  if (!page.showInNav || !isIndexable(page)) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: page.title,
+    description: page.seo.description,
+    url: `${siteUrl}${pathOf(page)}`,
+    provider: { '@id': `${siteUrl}/#organization` },
+    areaServed: site.serviceArea.map((area) => ({
+      '@type': 'AdministrativeArea',
+      name: area,
+    })),
+  };
+}
+
 /** Fil d'Ariane structuré — améliore l'affichage de l'URL dans les résultats. */
 export function breadcrumbJsonLd(trail: Page[]) {
   return {

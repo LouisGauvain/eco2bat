@@ -6,7 +6,7 @@ import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react
 
 import { hasCookieConsent } from '@/components/layout/CookieBanner';
 import { useCompany } from '@/lib/use-content';
-import { createLead } from '@/lib/leads-client';
+import { createLead } from '@/lib/public-store';
 import { DEADLINES, leadSchema, PRESTATIONS, prestationForPath, PROPERTY_TYPES } from '@/lib/leads';
 
 /**
