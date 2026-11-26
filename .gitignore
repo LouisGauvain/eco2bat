@@ -26,3 +26,6 @@ ui-debug.log
 next-env.d.ts
 
 .secrets/
+
+bdd.gz
+sql.gz
